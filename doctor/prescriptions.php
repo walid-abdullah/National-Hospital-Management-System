@@ -7,7 +7,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Doctor') {
 require_once '../config/db.php';
 
 $user_id = $_SESSION['user_id'];
-$stmt = $conn->prepare("SELECT doctor_id FROM doctors WHERE user_id = :user_id");
+$stmt = $conn->prepare("SELECT id as doctor_id FROM doctors WHERE user_id = :user_id");
 $stmt->bindParam(':user_id', $user_id);
 $stmt->execute();
 $doctor = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -17,7 +17,7 @@ if ($doctor) {
     $query = "SELECT p.prescription_id, pat.name AS patient_name, p.medicine, p.dosage, app.appointment_date 
               FROM prescriptions p 
               JOIN patients pat ON p.patient_id = pat.patient_id 
-              LEFT JOIN appointments app ON app.patient_id = pat.patient_id AND app.doctor_id = p.doctor_id
+              LEFT JOIN appointments app ON app.patient_id = pat.id AND app.doctor_id = p.doctor_id
               WHERE p.doctor_id = :doctor_id 
               GROUP BY p.prescription_id
               ORDER BY p.prescription_id DESC";
@@ -34,7 +34,7 @@ if ($doctor) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Prescriptions - NHMS</title>
+    <title>My Prescriptions - NHIMS</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = { darkMode: 'class', }
@@ -53,7 +53,7 @@ if ($doctor) {
 <body class="bg-slate-50 text-slate-800 flex flex-col min-h-screen dark:bg-gray-900 dark:text-gray-100 transition-colors duration-300">
     
     <nav class="glass-nav sticky top-0 z-50 p-4 shadow-sm flex justify-between items-center">
-        <h1 class="text-2xl font-extrabold custom-gradient-text tracking-tight">NHMS Doctor</h1>
+        <h1 class="text-2xl font-extrabold custom-gradient-text tracking-tight">NHIMS Doctor</h1>
         <div class="flex items-center space-x-4">
             <span class="border-l border-blue-400 h-6 mx-2"></span>
             <span>Welcome, <?php echo htmlspecialchars($_SESSION['username']); ?></span>

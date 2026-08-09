@@ -10,7 +10,7 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
     $action = $_GET['action'];
     $new_status = ($action === 'approve') ? 'Completed' : 'Cancelled';
     try {
-        $update = $conn->prepare("UPDATE appointments SET status = ? WHERE appointment_id = ?");
+        $update = $conn->prepare("UPDATE appointments SET status = ? WHERE id = ?");
         $update->execute([$new_status, $apt_id]);
         $_SESSION['success'] = "Appointment status updated to " . $new_status;
         header("Location: appointments.php");
@@ -21,10 +21,10 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
 }
 
 try {
-    $query = "SELECT a.appointment_id, p.name AS patient_name, d.doctor_name, a.appointment_date, a.status 
+    $query = "SELECT a.id as appointment_id, p.name AS patient_name, d.name AS doctor_name, a.appointment_date, a.status 
               FROM appointments a 
-              JOIN patients p ON a.patient_id = p.patient_id 
-              JOIN doctors d ON a.doctor_id = d.doctor_id 
+              JOIN patients p ON a.patient_id = p.id 
+              JOIN doctors d ON a.doctor_id = d.id 
               ORDER BY a.appointment_date DESC";
     $stmt = $conn->prepare($query);
     $stmt->execute();
@@ -85,7 +85,7 @@ try {
 
 <body class="bg-slate-50 text-slate-800 antialiased selection:bg-blue-200 selection:text-blue-900 flex flex-col min-h-screen transition-colors duration-300 dark:bg-gray-900 dark:text-gray-100">
     <nav class="glass-nav sticky top-0 z-50 p-4 shadow-sm text-gray-800 dark:text-gray-100 flex justify-between items-center">
-        <h1 class="text-2xl font-extrabold custom-gradient-text tracking-tight">NHMS - Reception Desk</h1>
+        <h1 class="text-2xl font-extrabold custom-gradient-text tracking-tight">NHIMS - Reception Desk</h1>
         <div class="flex items-center space-x-4">
             <a href="dashboard.php" class="text-purple-200 hover:text-gray-600 dark:text-gray-300 hover:text-blue-600 transition font-medium">Dashboard</a>
             <span class="border-l border-purple-400 h-6 mx-2"></span>
@@ -144,7 +144,7 @@ try {
     </div>
 
     <footer class="mt-auto py-6 text-center text-gray-500 dark:text-gray-400 dark:text-gray-400 text-sm border-t border-gray-200 dark:border-slate-700 dark:border-gray-800 w-full glass">
-        &copy; 2026 National Hospital Management System. Designed for Software Engineering Project.
+        &copy; 2026 National Hospital Information Management System. Designed for Software Engineering Project.
     </footer>
 </body>
 

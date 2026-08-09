@@ -55,7 +55,7 @@ dark_mode_button = """
 
 footer_injection = """
     <footer class="mt-auto py-6 text-center text-gray-500 dark:text-gray-400 text-sm border-t border-gray-200 dark:border-gray-800 w-full glass">
-        &copy; 2026 National Hospital Management System. Designed for Software Engineering Project.
+        &copy; 2026 National Hospital Information Management System. Designed for Software Engineering Project.
     </footer>
 </body>
 """

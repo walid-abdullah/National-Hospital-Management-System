@@ -11,12 +11,12 @@ if (isset($_GET['delete_id'])) {
     $del_id = intval($_GET['delete_id']);
     try {
         // Find user_id before deleting doctor
-        $stmt_u = $conn->prepare("SELECT user_id FROM doctors WHERE doctor_id = ?");
+        $stmt_u = $conn->prepare("SELECT user_id FROM doctors WHERE id = ?");
         $stmt_u->execute([$del_id]);
         $doc = $stmt_u->fetch();
         if ($doc) {
-            $conn->prepare("DELETE FROM doctors WHERE doctor_id = ?")->execute([$del_id]);
-            $conn->prepare("DELETE FROM users WHERE user_id = ?")->execute([$doc['user_id']]);
+            $conn->prepare("DELETE FROM doctors WHERE id = ?")->execute([$del_id]);
+            $conn->prepare("DELETE FROM users WHERE id = ?")->execute([$doc['user_id']]);
             $_SESSION['success'] = "Doctor deleted successfully!";
         }
         header("Location: doctors.php");
@@ -26,9 +26,14 @@ if (isset($_GET['delete_id'])) {
     }
 }
 
-// Fetch all doctors
+// Fetch all doctors with their hospital and department names
 try {
-    $stmt = $conn->prepare("SELECT * FROM doctors ORDER BY doctor_id DESC");
+    $query = "SELECT d.id, d.name, d.specialization, d.phone, h.name AS hospital_name, dept.name AS department_name 
+              FROM doctors d 
+              JOIN hospitals h ON d.hospital_id = h.id 
+              JOIN departments dept ON d.department_id = dept.id 
+              ORDER BY h.name, d.name";
+    $stmt = $conn->prepare($query);
     $stmt->execute();
     $doctors = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch(PDOException $e) {
@@ -40,7 +45,7 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Doctors - NHMS</title>
+    <title>Manage Doctors - NHIMS</title>
     <script src="https://cdn.tailwindcss.com"></script>
 
     
@@ -82,18 +87,15 @@ try {
             }
         }
     </script>
+
+    <link href="https://cdn.jsdelivr.net/npm/simple-datatables@latest/dist/style.css" rel="stylesheet" type="text/css">
+    <script src="https://cdn.jsdelivr.net/npm/simple-datatables@latest" type="text/javascript"></script>
 </head>
 
 
 <body class="bg-slate-50 text-slate-800 antialiased selection:bg-blue-200 selection:text-blue-900 flex flex-col min-h-screen transition-colors duration-300 dark:bg-gray-900 dark:text-gray-100">
     <!-- Navbar -->
-    <nav class="glass-nav sticky top-0 z-50 p-4 shadow-sm text-gray-800 dark:text-gray-100 flex justify-between items-center">
-        <h1 class="text-2xl font-extrabold custom-gradient-text tracking-tight">NHMS Admin</h1>
-        <div class="flex items-center space-x-4">
-            <a href="dashboard.php" class="text-blue-200 hover:text-gray-600 dark:text-gray-300 hover:text-blue-600 transition">Dashboard</a>
-            <a href="../logout.php" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded text-sm transition shadow">Logout</a>
-        </div>
-    </nav>
+    <?php include 'includes/navbar.php'; ?>
 
     <div class="max-w-6xl mx-auto animate-fade-in-up p-6 mt-6">
         <div class="flex justify-between items-center mb-6">
@@ -117,8 +119,9 @@ try {
                         <th class="p-4 border-b">ID</th>
                         <th class="p-4 border-b">Name</th>
                         <th class="p-4 border-b">Specialization</th>
+                        <th class="p-4 border-b">Hospital</th>
+                        <th class="p-4 border-b">Department</th>
                         <th class="p-4 border-b">Phone</th>
-                        <th class="p-4 border-b">Schedule</th>
                         <th class="p-4 border-b text-center">Actions</th>
                     </tr>
                 </thead>
@@ -126,14 +129,15 @@ try {
                     <?php if(!empty($doctors)): ?>
                         <?php foreach($doctors as $doctor): ?>
                         <tr class="hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors duration-200">
-                            <td class="p-4 text-sm font-semibold text-gray-700 dark:text-gray-200">#<?php echo $doctor['doctor_id']; ?></td>
-                            <td class="p-4 text-sm font-medium"><?php echo htmlspecialchars($doctor['doctor_name']); ?></td>
-                            <td class="p-4 text-sm text-gray-500 dark:text-gray-400 bg-blue-50/50 rounded inline-block mt-2 ml-4 px-2 py-1"><?php echo htmlspecialchars($doctor['specialization']); ?></td>
+                            <td class="p-4 text-sm font-semibold text-gray-700 dark:text-gray-200">#<?php echo $doctor['id']; ?></td>
+                            <td class="p-4 text-sm font-medium text-blue-600"><?php echo htmlspecialchars($doctor['name']); ?></td>
+                            <td class="p-4 text-sm text-gray-500 dark:text-gray-400"><?php echo htmlspecialchars($doctor['specialization']); ?></td>
+                            <td class="p-4 text-sm font-medium"><?php echo htmlspecialchars($doctor['hospital_name']); ?></td>
+                            <td class="p-4 text-sm text-gray-500 dark:text-gray-400"><?php echo htmlspecialchars($doctor['department_name']); ?></td>
                             <td class="p-4 text-sm text-gray-500 dark:text-gray-400"><?php echo htmlspecialchars($doctor['phone']); ?></td>
-                            <td class="p-4 text-sm text-gray-500 dark:text-gray-400"><?php echo htmlspecialchars($doctor['schedule']); ?></td>
                             <td class="p-4 text-center space-x-2">
-                                <a href="edit_doctor.php?id=<?php echo $doctor['doctor_id']; ?>" class="text-blue-500 hover:text-blue-700 font-medium text-sm">Edit</a>
-                                <a href="?delete_id=<?php echo $doctor['doctor_id']; ?>" onclick="return confirm('Are you sure you want to delete this doctor?');" class="text-red-500 hover:text-red-700 font-medium text-sm">Delete</a>
+                                <a href="edit_doctor.php?id=<?php echo $doctor['id']; ?>" class="text-blue-500 hover:text-blue-700 font-medium text-sm">Edit</a>
+                                <a href="?delete_id=<?php echo $doctor['id']; ?>" onclick="return confirm('Are you sure you want to delete this doctor?');" class="text-red-500 hover:text-red-700 font-medium text-sm">Delete</a>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -148,8 +152,21 @@ try {
     </div>
 
     <footer class="mt-auto py-6 text-center text-gray-500 dark:text-gray-400 dark:text-gray-400 text-sm border-t border-gray-200 dark:border-slate-700 dark:border-gray-800 w-full glass">
-        &copy; 2026 National Hospital Management System. Designed for Software Engineering Project.
+        &copy; 2026 National Hospital Information Management System. Designed for Software Engineering Project.
     </footer>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const table = document.querySelector("table");
+            if (table) {
+                new simpleDatatables.DataTable(table, {
+                    searchable: true,
+                    fixedHeight: false,
+                    perPage: 15
+                });
+            }
+        });
+    </script>
 </body>
 
 </html>

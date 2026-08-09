@@ -13,7 +13,7 @@
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
                             </svg>
                         </div>
-                        <span class="text-xl font-bold custom-gradient-text">NHMS</span>
+                        <span class="text-xl font-bold custom-gradient-text">NHIMS</span>
                     </a>
                     <p class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed mb-6">
                         Providing world-class healthcare services with modern technology. Your health is our top priority, 24 hours a day, 7 days a week.
@@ -69,7 +69,7 @@
                         </li>
                         <li class="flex items-center">
                             <svg class="h-5 w-5 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                            info@nhms-hospital.com
+                            info@nhims-hospital.com
                         </li>
                     </ul>
                 </div>
@@ -77,7 +77,7 @@
             
             <div class="border-t border-gray-200 dark:border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center">
                 <p class="text-sm text-gray-500 dark:text-gray-400">
-                    &copy; <?php echo date('Y'); ?> National Hospital Management System. Designed for Software Engineering Project.
+                    &copy; <?php echo date('Y'); ?> National Hospital Information Management System. Designed for Software Engineering Project.
                 </p>
                 <div class="mt-4 md:mt-0 space-x-4 text-sm text-gray-500 dark:text-gray-400">
                     <a href="#" class="hover:text-blue-500 transition-colors">Privacy Policy</a>

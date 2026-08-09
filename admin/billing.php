@@ -8,9 +8,9 @@ require_once '../config/db.php';
 
 // Fetch all bills
 try {
-    $query = "SELECT b.bill_id, p.name AS patient_name, b.amount, b.payment_status, b.bill_date 
+    $query = "SELECT b.id as bill_id, p.name AS patient_name, b.total_amount as amount, b.status as payment_status, b.bill_date 
               FROM billing b 
-              JOIN patients p ON b.patient_id = p.patient_id 
+              JOIN patients p ON b.patient_id = p.id 
               ORDER BY b.bill_date DESC";
     $stmt = $conn->prepare($query);
     $stmt->execute();
@@ -24,7 +24,7 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Billing Management - NHMS</title>
+    <title>Billing Management - NHIMS</title>
     <script src="https://cdn.tailwindcss.com"></script>
 
     
@@ -66,18 +66,15 @@ try {
             }
         }
     </script>
+
+    <link href="https://cdn.jsdelivr.net/npm/simple-datatables@latest/dist/style.css" rel="stylesheet" type="text/css">
+    <script src="https://cdn.jsdelivr.net/npm/simple-datatables@latest" type="text/javascript"></script>
 </head>
 
 
 <body class="bg-slate-50 text-slate-800 antialiased selection:bg-blue-200 selection:text-blue-900 flex flex-col min-h-screen transition-colors duration-300 dark:bg-gray-900 dark:text-gray-100">
     <!-- Navbar -->
-    <nav class="glass-nav sticky top-0 z-50 p-4 shadow-sm text-gray-800 dark:text-gray-100 flex justify-between items-center">
-        <h1 class="text-2xl font-extrabold custom-gradient-text tracking-tight">NHMS Admin</h1>
-        <div class="flex items-center space-x-4">
-            <a href="dashboard.php" class="text-blue-200 hover:text-gray-600 dark:text-gray-300 hover:text-blue-600 transition">Dashboard</a>
-            <a href="../logout.php" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded text-sm transition shadow">Logout</a>
-        </div>
-    </nav>
+    <?php include 'includes/navbar.php'; ?>
 
     <div class="max-w-6xl mx-auto animate-fade-in-up p-6 mt-6">
         <div class="flex justify-between items-center mb-6">
@@ -116,7 +113,7 @@ try {
                             </td>
                             <td class="p-4 text-sm text-gray-500 dark:text-gray-400"><?php echo date('M d, Y', strtotime($bill['bill_date'])); ?></td>
                             <td class="p-4 text-center space-x-2">
-                                <a href="#" class="text-blue-500 hover:text-blue-700 font-medium text-sm">Print</a>
+                                <a href="print_invoice.php?id=<?php echo $bill['bill_id']; ?>" target="_blank" class="text-blue-500 hover:text-blue-700 font-medium text-sm border border-blue-500 px-3 py-1 rounded hover:bg-blue-50 transition">Print Invoice</a>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -131,8 +128,21 @@ try {
     </div>
 
     <footer class="mt-auto py-6 text-center text-gray-500 dark:text-gray-400 dark:text-gray-400 text-sm border-t border-gray-200 dark:border-slate-700 dark:border-gray-800 w-full glass">
-        &copy; 2026 National Hospital Management System. Designed for Software Engineering Project.
+        &copy; 2026 National Hospital Information Management System. Designed for Software Engineering Project.
     </footer>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const table = document.querySelector("table");
+            if (table) {
+                new simpleDatatables.DataTable(table, {
+                    searchable: true,
+                    fixedHeight: false,
+                    perPage: 15
+                });
+            }
+        });
+    </script>
 </body>
 
 </html>

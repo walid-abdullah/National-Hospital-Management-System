@@ -11,7 +11,7 @@ require_once '../config/db.php';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Patient Dashboard - NHMS</title>
+    <title>Patient Dashboard - NHIMS</title>
     <script src="https://cdn.tailwindcss.com"></script>
 
     
@@ -58,13 +58,15 @@ require_once '../config/db.php';
 
 <body class="bg-slate-50 text-slate-800 antialiased selection:bg-blue-200 selection:text-blue-900 flex flex-col min-h-screen transition-colors duration-300 dark:bg-gray-900 dark:text-gray-100">
     <nav class="glass-nav sticky top-0 z-50 p-4 shadow-sm text-gray-800 dark:text-gray-100 flex justify-between items-center">
-        <h1 class="text-2xl font-extrabold custom-gradient-text tracking-tight">NHMS - Patient Portal</h1>
+        <h1 class="text-2xl font-extrabold custom-gradient-text tracking-tight">NHIMS - Patient Portal</h1>
         <div class="flex items-center space-x-4">
             <a href="dashboard.php" class="text-teal-200 hover:text-gray-600 dark:text-gray-300 hover:text-blue-600 transition font-medium">Dashboard</a>
             <a href="appointments.php" class="text-teal-200 hover:text-gray-600 dark:text-gray-300 hover:text-blue-600 transition font-medium">Appointments</a>
+            <a href="tracking.php" class="text-teal-200 hover:text-gray-600 dark:text-gray-300 hover:text-blue-600 transition font-medium">Tracking</a>
             <a href="records.php" class="text-teal-200 hover:text-gray-600 dark:text-gray-300 hover:text-blue-600 transition font-medium">History</a>
             <a href="prescriptions.php" class="text-teal-200 hover:text-gray-600 dark:text-gray-300 hover:text-blue-600 transition font-medium">Prescriptions</a>
             <a href="lab_tests.php" class="text-teal-200 hover:text-gray-600 dark:text-gray-300 hover:text-blue-600 transition font-medium">Lab Reports</a>
+            <a href="feedback.php" class="text-teal-200 hover:text-gray-600 dark:text-gray-300 hover:text-blue-600 transition font-medium">Feedback</a>
             <span class="border-l border-teal-400 h-6 mx-2"></span>
             <span>Welcome, <?php echo htmlspecialchars($_SESSION['username']); ?></span>
             <a href="../logout.php" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded text-sm transition shadow text-white">Logout</a>
@@ -76,6 +78,13 @@ require_once '../config/db.php';
             <p class="text-gray-600 dark:text-gray-300 mb-8">Access your medical history, view upcoming appointments, and check test results.</p>
             
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Tracking Card -->
+                <div class="bg-rose-50 dark:bg-slate-800 p-6 rounded-lg border border-rose-100 dark:border-slate-700 text-center col-span-1 md:col-span-3 mb-4 shadow-sm">
+                    <h3 class="text-xl font-bold text-rose-800 dark:text-rose-400">🗺️ Treatment Tracking</h3>
+                    <p class="text-gray-600 dark:text-gray-400 text-sm mt-2 mb-4">View your complete journey from admission to recovery in a visual timeline.</p>
+                    <a href="tracking.php" class="inline-block bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 px-6 py-3 rounded-lg font-bold">Track My Journey</a>
+                </div>
+
                 <div class="bg-teal-50 dark:bg-slate-800 p-6 rounded-lg border border-teal-100 dark:border-slate-700 text-center">
                     <h3 class="text-lg font-semibold text-teal-800 dark:text-teal-400">My Appointments</h3>
                     <a href="appointments.php" class="inline-block mt-4 bg-gradient-to-r from-teal-500 to-emerald-600 text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 px-4 py-2 rounded w-full">View Appointments</a>
@@ -101,7 +110,7 @@ require_once '../config/db.php';
     </div>
 
     <footer class="mt-auto py-6 text-center text-gray-500 dark:text-gray-400 dark:text-gray-400 text-sm border-t border-gray-200 dark:border-slate-700 dark:border-gray-800 w-full glass">
-        &copy; 2026 National Hospital Management System. Designed for Software Engineering Project.
+        &copy; 2026 National Hospital Information Management System. Designed for Software Engineering Project.
     </footer>
 </body>
 

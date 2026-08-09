@@ -7,17 +7,18 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Patient') {
 require_once '../config/db.php';
 
 $user_id = $_SESSION['user_id'];
-$stmt = $conn->prepare("SELECT patient_id FROM patients WHERE user_id = :user_id");
+$stmt = $conn->prepare("SELECT id AS patient_id FROM patients WHERE user_id = :user_id");
 $stmt->bindParam(':user_id', $user_id);
 $stmt->execute();
 $patient = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if ($patient) {
     $patient_id = $patient['patient_id'];
-    $query = "SELECT test_id, test_name, test_result, test_date 
-              FROM laboratory_tests 
-              WHERE patient_id = :patient_id 
-              ORDER BY test_date DESC";
+    $query = "SELECT l.id as test_id, s.service_name as test_name, l.status, l.result_text as test_result, l.test_date, l.file_path 
+              FROM laboratory_tests l
+              JOIN lab_services s ON l.service_id = s.id
+              WHERE l.patient_id = :patient_id 
+              ORDER BY l.test_date DESC";
     $stmt2 = $conn->prepare($query);
     $stmt2->bindParam(':patient_id', $patient_id);
     $stmt2->execute();
@@ -31,7 +32,7 @@ if ($patient) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Lab Reports - NHMS</title>
+    <title>My Lab Reports - NHIMS</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = { darkMode: 'class', }
@@ -49,7 +50,7 @@ if ($patient) {
 </head>
 <body class="bg-slate-50 text-slate-800 flex flex-col min-h-screen dark:bg-gray-900 dark:text-gray-100 transition-colors duration-300">
     <nav class="glass-nav sticky top-0 z-50 p-4 shadow-sm flex justify-between items-center">
-        <h1 class="text-2xl font-extrabold custom-gradient-text tracking-tight">NHMS - Patient Portal</h1>
+        <h1 class="text-2xl font-extrabold custom-gradient-text tracking-tight">NHIMS - Patient Portal</h1>
         <div class="flex items-center space-x-4">
             <a href="dashboard.php" class="text-teal-200 hover:text-gray-600 dark:text-gray-300 hover:text-blue-600 transition font-medium">Dashboard</a>
             <a href="appointments.php" class="text-teal-200 hover:text-gray-600 dark:text-gray-300 hover:text-blue-600 transition font-medium">Appointments</a>
@@ -66,21 +67,38 @@ if ($patient) {
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <?php if(!empty($tests)): ?>
                 <?php foreach($tests as $test): ?>
-                <div class="glass p-6 rounded-2xl shadow-lg border border-white/50 hover:-translate-y-1 transition-transform">
+                <div class="glass p-6 rounded-2xl shadow-lg border border-white/50 hover:-translate-y-1 transition-transform relative">
                     <div class="flex justify-between items-start mb-4">
                         <h3 class="font-bold text-lg text-purple-700 dark:text-purple-400"><?php echo htmlspecialchars($test['test_name']); ?></h3>
                         <span class="text-xs text-gray-500"><?php echo date('d M Y', strtotime($test['test_date'])); ?></span>
                     </div>
-                    <div class="mb-4">
+                    
+                    <div class="mb-2">
+                        <span class="px-2 py-1 text-xs font-semibold rounded 
+                            <?php 
+                                if($test['status'] === 'Completed') echo 'bg-green-100 text-green-700'; 
+                                else if($test['status'] === 'Processing') echo 'bg-blue-100 text-blue-700';
+                                else echo 'bg-yellow-100 text-yellow-700'; 
+                            ?>">
+                            <?php echo htmlspecialchars($test['status']); ?>
+                        </span>
+                    </div>
+
+                    <div class="mb-4 mt-4">
                         <p class="text-sm text-gray-500 mb-1">Result / Report:</p>
-                        <?php if(strpos(strtolower($test['test_result']), 'pending') !== false): ?>
+                        <?php if($test['status'] !== 'Completed'): ?>
                             <div class="p-3 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 rounded-lg text-sm border border-yellow-200 dark:border-yellow-800">
-                                This test result is currently pending processing by the lab staff. Please check back later.
+                                This test result is currently <?php echo strtolower($test['status']); ?> by the lab staff. Please check back later.
                             </div>
                         <?php else: ?>
                             <div class="p-3 bg-white dark:bg-slate-800 text-gray-800 dark:text-gray-200 rounded-lg text-sm border border-gray-200 dark:border-slate-700 shadow-inner min-h-[80px] whitespace-pre-wrap">
-                                <?php echo htmlspecialchars($test['test_result']); ?>
+                                <?php echo htmlspecialchars($test['test_result'] ?? 'No text report provided.'); ?>
                             </div>
+                            <?php if(!empty($test['file_path'])): ?>
+                                <a href="../<?php echo htmlspecialchars($test['file_path']); ?>" target="_blank" class="mt-4 block text-center bg-purple-600 hover:bg-purple-700 text-white py-2 rounded transition font-bold shadow-md">Download Attached PDF</a>
+                            <?php else: ?>
+                                <a href="print_lab_report.php?id=<?php echo $test['test_id']; ?>" target="_blank" class="mt-4 block text-center bg-purple-600 hover:bg-purple-700 text-white py-2 rounded transition font-bold shadow-md">Generate & Download PDF</a>
+                            <?php endif; ?>
                         <?php endif; ?>
                     </div>
                 </div>

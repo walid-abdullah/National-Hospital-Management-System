@@ -6,7 +6,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Receptionist') {
 }
 require_once '../config/db.php';
 try {
-    $stmt = $conn->prepare("SELECT * FROM patients ORDER BY patient_id DESC");
+    $stmt = $conn->prepare("SELECT * FROM patients ORDER BY id DESC");
     $stmt->execute();
     $patients = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch(PDOException $e) {
@@ -65,7 +65,7 @@ try {
 
 <body class="bg-slate-50 text-slate-800 antialiased selection:bg-blue-200 selection:text-blue-900 flex flex-col min-h-screen transition-colors duration-300 dark:bg-gray-900 dark:text-gray-100">
     <nav class="glass-nav sticky top-0 z-50 p-4 shadow-sm text-gray-800 dark:text-gray-100 flex justify-between items-center">
-        <h1 class="text-2xl font-extrabold custom-gradient-text tracking-tight">NHMS - Reception Desk</h1>
+        <h1 class="text-2xl font-extrabold custom-gradient-text tracking-tight">NHIMS - Reception Desk</h1>
         <div class="flex items-center space-x-4">
             <a href="dashboard.php" class="text-purple-200 hover:text-gray-600 dark:text-gray-300 hover:text-blue-600 transition font-medium">Dashboard</a>
             <span class="border-l border-purple-400 h-6 mx-2"></span>
@@ -89,7 +89,7 @@ try {
                     <?php if(!empty($patients)): ?>
                         <?php foreach($patients as $patient): ?>
                         <tr class="hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors duration-200">
-                            <td class="p-4 text-sm font-semibold text-gray-700 dark:text-gray-200">#<?php echo $patient['patient_id']; ?></td>
+                            <td class="p-4 text-sm font-semibold text-gray-700 dark:text-gray-200">#<?php echo $patient['id']; ?></td>
                             <td class="p-4 text-sm font-bold"><?php echo htmlspecialchars($patient['name']); ?></td>
                             <td class="p-4 text-sm text-gray-500 dark:text-gray-400"><?php echo $patient['age']; ?> / <?php echo $patient['gender']; ?></td>
                             <td class="p-4 text-sm text-gray-600 dark:text-gray-300"><?php echo htmlspecialchars($patient['phone']); ?></td>
@@ -105,7 +105,7 @@ try {
     </div>
 
     <footer class="mt-auto py-6 text-center text-gray-500 dark:text-gray-400 dark:text-gray-400 text-sm border-t border-gray-200 dark:border-slate-700 dark:border-gray-800 w-full glass">
-        &copy; 2026 National Hospital Management System. Designed for Software Engineering Project.
+        &copy; 2026 National Hospital Information Management System. Designed for Software Engineering Project.
     </footer>
 </body>
 

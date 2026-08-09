@@ -15,7 +15,7 @@ if (isset($_SESSION['user_id'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NHMS - Login</title>
+    <title>NHIMS - Login</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -67,8 +67,8 @@ if (isset($_SESSION['user_id'])) {
             <div class="absolute -top-20 -right-20 w-40 h-40 bg-blue-400 dark:bg-blue-600 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl opacity-30 animate-pulse"></div>
             
             <div class="text-center mb-8 relative z-10">
-                <h1 class="text-4xl font-extrabold mb-2 custom-gradient-text tracking-tight">NHMS</h1>
-                <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">National Hospital Management System</p>
+                <h1 class="text-4xl font-extrabold mb-2 custom-gradient-text tracking-tight">NHIMS</h1>
+                <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">National Hospital Information Management System</p>
             </div>
 
             <?php if(isset($_SESSION['error'])): ?>
@@ -102,6 +102,7 @@ if (isset($_SESSION['user_id'])) {
                         <option value="Doctor">Doctor</option>
                         <option value="Receptionist">Receptionist</option>
                         <option value="Laboratory Staff">Laboratory Staff</option>
+                        <option value="Pharmacist">Pharmacist</option>
                         <option value="Patient">Patient</option>
                     </select>
                 </div>
@@ -110,12 +111,18 @@ if (isset($_SESSION['user_id'])) {
                     class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3 px-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-indigo-500/30 transform hover:-translate-y-0.5 mt-6">
                     Sign In
                 </button>
+
+                <div class="mt-4 text-center">
+                    <a href="register.php" class="text-sm text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 font-medium transition-colors">
+                        New here? Create an account
+                    </a>
+                </div>
             </form>
         </div>
     </div>
 
     <footer class="py-6 text-center text-gray-500 dark:text-gray-500 text-sm w-full border-t border-gray-200 dark:border-slate-800/50 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
-        &copy; <?php echo date('Y'); ?> National Hospital Management System. All rights reserved.
+        &copy; <?php echo date('Y'); ?> National Hospital Information Management System. All rights reserved.
     </footer>
 </body>
 </html>

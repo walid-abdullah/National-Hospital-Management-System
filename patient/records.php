@@ -7,16 +7,16 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Patient') {
 require_once '../config/db.php';
 
 $user_id = $_SESSION['user_id'];
-$stmt = $conn->prepare("SELECT patient_id FROM patients WHERE user_id = :user_id");
+$stmt = $conn->prepare("SELECT id as patient_id FROM patients WHERE user_id = :user_id");
 $stmt->bindParam(':user_id', $user_id);
 $stmt->execute();
 $patient = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if ($patient) {
     $patient_id = $patient['patient_id'];
-    $query = "SELECT m.record_id, d.doctor_name, m.diagnosis, m.treatment, m.visit_date 
+    $query = "SELECT m.id as record_id, d.name as doctor_name, m.diagnosis, m.treatment, m.visit_date 
               FROM medical_records m 
-              JOIN doctors d ON m.doctor_id = d.doctor_id 
+              JOIN doctors d ON m.doctor_id = d.id 
               WHERE m.patient_id = :patient_id 
               ORDER BY m.visit_date DESC";
     $stmt2 = $conn->prepare($query);
@@ -32,7 +32,7 @@ if ($patient) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Medical Records - NHMS</title>
+    <title>My Medical Records - NHIMS</title>
     <script src="https://cdn.tailwindcss.com"></script>
 
     
@@ -74,12 +74,14 @@ if ($patient) {
             }
         }
     </script>
+    <link href="https://cdn.jsdelivr.net/npm/simple-datatables@latest/dist/style.css" rel="stylesheet" type="text/css">
+    <script src="https://cdn.jsdelivr.net/npm/simple-datatables@latest" type="text/javascript"></script>
 </head>
 
 
 <body class="bg-slate-50 text-slate-800 antialiased selection:bg-blue-200 selection:text-blue-900 flex flex-col min-h-screen transition-colors duration-300 dark:bg-gray-900 dark:text-gray-100">
     <nav class="glass-nav sticky top-0 z-50 p-4 shadow-sm text-gray-800 dark:text-gray-100 flex justify-between items-center">
-        <h1 class="text-2xl font-extrabold custom-gradient-text tracking-tight">NHMS - Patient Portal</h1>
+        <h1 class="text-2xl font-extrabold custom-gradient-text tracking-tight">NHIMS - Patient Portal</h1>
         <div class="flex items-center space-x-4">
             <a href="dashboard.php" class="text-teal-200 hover:text-gray-600 dark:text-gray-300 hover:text-blue-600 transition font-medium">Dashboard</a>
             <span class="border-l border-teal-400 h-6 mx-2"></span>
@@ -102,7 +104,7 @@ if ($patient) {
                     <?php if(!empty($records)): ?>
                         <?php foreach($records as $rec): ?>
                         <tr class="hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors duration-200">
-                            <td class="p-4 text-sm font-bold text-teal-700"><?php echo htmlspecialchars($rec['doctor_name']); ?></td>
+                            <td class="p-4 text-sm font-bold text-teal-700 dark:text-teal-400"><?php echo htmlspecialchars($rec['doctor_name']); ?></td>
                             <td class="p-4 text-sm text-gray-500 dark:text-gray-400"><?php echo date('M d, Y', strtotime($rec['visit_date'])); ?></td>
                             <td class="p-4 text-sm text-gray-800 dark:text-gray-100 font-medium"><?php echo htmlspecialchars($rec['diagnosis']); ?></td>
                             <td class="p-4 text-sm text-gray-600 dark:text-gray-300"><?php echo htmlspecialchars($rec['treatment']); ?></td>
@@ -117,8 +119,20 @@ if ($patient) {
     </div>
 
     <footer class="mt-auto py-6 text-center text-gray-500 dark:text-gray-400 dark:text-gray-400 text-sm border-t border-gray-200 dark:border-slate-700 dark:border-gray-800 w-full glass">
-        &copy; 2026 National Hospital Management System. Designed for Software Engineering Project.
+        &copy; 2026 National Hospital Information Management System. Designed for Software Engineering Project.
     </footer>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const table = document.querySelector("table");
+            if (table) {
+                new simpleDatatables.DataTable(table, {
+                    searchable: true,
+                    fixedHeight: false,
+                    perPage: 15
+                });
+            }
+        });
+    </script>
 </body>
 
 </html>

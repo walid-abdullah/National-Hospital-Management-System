@@ -14,10 +14,10 @@ try {
 $filter = isset($_GET['specialization']) ? $_GET['specialization'] : '';
 try {
     if ($filter) {
-        $stmt = $conn->prepare("SELECT * FROM doctors WHERE specialization = :spec ORDER BY doctor_name ASC");
+        $stmt = $conn->prepare("SELECT d.*, h.name as hospital_name FROM doctors d LEFT JOIN hospitals h ON d.hospital_id = h.id WHERE d.specialization = :spec ORDER BY d.name ASC");
         $stmt->bindParam(':spec', $filter);
     } else {
-        $stmt = $conn->prepare("SELECT * FROM doctors ORDER BY doctor_name ASC");
+        $stmt = $conn->prepare("SELECT d.*, h.name as hospital_name FROM doctors d LEFT JOIN hospitals h ON d.hospital_id = h.id ORDER BY d.name ASC");
     }
     $stmt->execute();
     $doctors = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -66,12 +66,13 @@ require_once 'includes/header_public.php';
                         <div class="h-32 bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center">
                             <!-- Avatar Placeholder -->
                             <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-inner mt-16 text-3xl font-bold text-blue-600">
-                                <?php echo substr($doc['doctor_name'], 0, 1); ?>
+                                <?php echo substr($doc['name'], 0, 1); ?>
                             </div>
                         </div>
                         <div class="p-6 pt-10 flex-grow text-center">
-                            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-1"><?php echo htmlspecialchars($doc['doctor_name']); ?></h3>
-                            <p class="text-indigo-600 dark:text-indigo-400 font-medium mb-4"><?php echo htmlspecialchars($doc['specialization']); ?></p>
+                            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-1"><?php echo htmlspecialchars($doc['name']); ?></h3>
+                            <p class="text-indigo-600 dark:text-indigo-400 font-medium mb-1"><?php echo htmlspecialchars($doc['specialization']); ?></p>
+                            <p class="text-gray-500 dark:text-gray-400 text-sm mb-4"><span class="font-semibold">Hospital:</span> <?php echo htmlspecialchars($doc['hospital_name'] ?? 'Not Assigned'); ?></p>
                             
                             <div class="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3 text-sm text-gray-600 dark:text-gray-400 mb-6 flex flex-col gap-2">
                                 <div class="flex items-center justify-center">
@@ -84,7 +85,7 @@ require_once 'includes/header_public.php';
                                 </div>
                             </div>
                             
-                            <a href="book_online.php?doctor_id=<?php echo $doc['doctor_id']; ?>" class="block w-full bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/40 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-semibold py-2 px-4 rounded-xl transition-colors">
+                            <a href="book_online.php?doctor_id=<?php echo $doc['id']; ?>" class="block w-full bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/40 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-semibold py-2 px-4 rounded-xl transition-colors">
                                 Book Appointment
                             </a>
                         </div>

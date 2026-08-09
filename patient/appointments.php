@@ -7,16 +7,16 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Patient') {
 require_once '../config/db.php';
 
 $user_id = $_SESSION['user_id'];
-$stmt = $conn->prepare("SELECT patient_id FROM patients WHERE user_id = :user_id");
+$stmt = $conn->prepare("SELECT id AS patient_id FROM patients WHERE user_id = :user_id");
 $stmt->bindParam(':user_id', $user_id);
 $stmt->execute();
 $patient = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if ($patient) {
     $patient_id = $patient['patient_id'];
-    $query = "SELECT a.appointment_id, d.doctor_name, d.specialization, a.appointment_date, a.status 
+$query = "SELECT a.id as appointment_id, d.name as doctor_name, d.specialization, a.appointment_date, a.appointment_type, a.status 
               FROM appointments a 
-              JOIN doctors d ON a.doctor_id = d.doctor_id 
+              JOIN doctors d ON a.doctor_id = d.id 
               WHERE a.patient_id = :patient_id 
               ORDER BY a.appointment_date DESC";
     $stmt2 = $conn->prepare($query);
@@ -32,7 +32,7 @@ if ($patient) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Appointments - NHMS</title>
+    <title>My Appointments - NHIMS</title>
     <script src="https://cdn.tailwindcss.com"></script>
 
     
@@ -57,59 +57,64 @@ if ($patient) {
         .custom-gradient-text { background: linear-gradient(135deg, #2563eb, #4f46e5); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .dark .custom-gradient-text { background: linear-gradient(135deg, #60a5fa, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     </style>
-    <script>
-        // Check local storage for dark mode preference
-        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark')
-        } else {
-            document.documentElement.classList.remove('dark')
-        }
-        function toggleDarkMode() {
-            if (document.documentElement.classList.contains('dark')) {
-                document.documentElement.classList.remove('dark');
-                localStorage.theme = 'light';
-            } else {
-                document.documentElement.classList.add('dark');
-                localStorage.theme = 'dark';
-            }
-        }
-    </script>
 </head>
 
 
 <body class="bg-slate-50 text-slate-800 antialiased selection:bg-blue-200 selection:text-blue-900 flex flex-col min-h-screen transition-colors duration-300 dark:bg-gray-900 dark:text-gray-100">
     <nav class="glass-nav sticky top-0 z-50 p-4 shadow-sm text-gray-800 dark:text-gray-100 flex justify-between items-center">
-        <h1 class="text-2xl font-extrabold custom-gradient-text tracking-tight">NHMS - Patient Portal</h1>
+        <h1 class="text-2xl font-extrabold custom-gradient-text tracking-tight">NHIMS - Patient Portal</h1>
         <div class="flex items-center space-x-4">
             <a href="dashboard.php" class="text-teal-200 hover:text-gray-600 dark:text-gray-300 hover:text-blue-600 transition font-medium">Dashboard</a>
             <span class="border-l border-teal-400 h-6 mx-2"></span>
-            <a href="../logout.php" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded text-sm transition shadow">Logout</a>
+            <a href="../logout.php" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded text-sm transition shadow text-white">Logout</a>
         </div>
     </nav>
-    <div class="max-w-5xl mx-auto animate-fade-in-up mt-10 p-6">
+    <div class="max-w-5xl mx-auto animate-fade-in-up mt-10 p-6 w-full">
         <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-6">My Appointments</h2>
         <div class="glass rounded-2xl shadow-xl border border-white/50 overflow-hidden">
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 uppercase text-xs">
                         <th class="p-4 border-b">Doctor</th>
-                        <th class="p-4 border-b">Specialization</th>
+                        <th class="p-4 border-b">Type</th>
                         <th class="p-4 border-b">Date</th>
                         <th class="p-4 border-b">Status</th>
+                        <th class="p-4 border-b">Action</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100">
+                <tbody class="divide-y divide-gray-100 dark:divide-slate-700">
                     <?php if(!empty($appointments)): ?>
                         <?php foreach($appointments as $apt): ?>
                         <tr class="hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors duration-200">
-                            <td class="p-4 text-sm font-bold text-teal-700"><?php echo htmlspecialchars($apt['doctor_name']); ?></td>
-                            <td class="p-4 text-sm text-gray-600 dark:text-gray-300"><?php echo htmlspecialchars($apt['specialization']); ?></td>
+                            <td class="p-4 text-sm font-bold text-teal-700 dark:text-teal-400"><?php echo htmlspecialchars($apt['doctor_name']); ?>
+                                <div class="text-xs font-normal text-gray-500 dark:text-gray-400"><?php echo htmlspecialchars($apt['specialization']); ?></div>
+                            </td>
+                            <td class="p-4 text-sm">
+                                <?php if($apt['appointment_type'] === 'Telemedicine'): ?>
+                                    <span class="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs font-semibold">🌐 Telemedicine</span>
+                                <?php else: ?>
+                                    <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-semibold">🏢 In-Person</span>
+                                <?php endif; ?>
+                            </td>
                             <td class="p-4 text-sm text-gray-800 dark:text-gray-100"><?php echo date('M d, Y', strtotime($apt['appointment_date'])); ?></td>
                             <td class="p-4 text-sm">
                                 <?php if($apt['status'] == 'Confirmed'): ?>
                                     <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-semibold">Confirmed</span>
                                 <?php else: ?>
                                     <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-semibold"><?php echo htmlspecialchars($apt['status']); ?></span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="p-4 text-sm">
+                                <?php if($apt['status'] == 'Completed'): ?>
+                                    <span class="text-emerald-600 text-xs font-bold">✅ Consultation Finished</span>
+                                <?php elseif($apt['status'] == 'Confirmed' && $apt['appointment_type'] === 'Telemedicine'): ?>
+                                    <a href="#" class="join-tele-btn bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white px-4 py-2 rounded text-xs font-bold shadow-lg transform hover:scale-105 transition-all inline-block">📹 Join Video Call</a>
+                                <?php elseif($apt['status'] == 'Confirmed' && $apt['appointment_type'] === 'Physical'): ?>
+                                    <a href="print_token.php?id=<?php echo $apt['appointment_id']; ?>" target="_blank" class="bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white px-4 py-2 rounded text-xs font-bold shadow-lg transform hover:scale-105 transition-all inline-block">🎟️ View Queue Token</a>
+                                <?php elseif($apt['status'] == 'Pending'): ?>
+                                    <span class="text-gray-400 text-xs italic">Waiting Approval</span>
+                                <?php else: ?>
+                                    <span class="text-gray-400 text-xs italic"><?php echo htmlspecialchars($apt['status']); ?></span>
                                 <?php endif; ?>
                             </td>
                         </tr>
@@ -122,8 +127,55 @@ if ($patient) {
         </div>
     </div>
 
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-3"></div>
+
+    <script>
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let bgClass = type === 'success' ? 'bg-gradient-to-r from-green-500 to-emerald-600' : 'bg-gradient-to-r from-blue-500 to-indigo-600';
+            
+            toast.className = `transform translate-x-full opacity-0 transition-all duration-500 ease-out flex items-center p-4 rounded-xl shadow-2xl text-white ${bgClass}`;
+            toast.innerHTML = `
+                <svg class="w-6 h-6 mr-3 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                <div class="font-semibold text-sm">${message}</div>
+            `;
+            
+            container.appendChild(toast);
+            
+            // Animate in
+            setTimeout(() => {
+                toast.classList.remove('translate-x-full', 'opacity-0');
+                toast.classList.add('translate-x-0', 'opacity-100');
+            }, 50);
+            
+            // Animate out
+            setTimeout(() => {
+                toast.classList.remove('translate-x-0', 'opacity-100');
+                toast.classList.add('translate-x-full', 'opacity-0');
+                setTimeout(() => toast.remove(), 500);
+            }, 4000);
+        }
+
+        // Attach event listeners to telemedicine buttons
+        document.addEventListener('DOMContentLoaded', () => {
+            const teleBtns = document.querySelectorAll('.join-tele-btn');
+            teleBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    showToast('Connecting to secure video server...', 'info');
+                    setTimeout(() => {
+                        showToast('Video Call Started successfully.', 'success');
+                    }, 1500);
+                });
+            });
+        });
+    </script>
+
     <footer class="mt-auto py-6 text-center text-gray-500 dark:text-gray-400 dark:text-gray-400 text-sm border-t border-gray-200 dark:border-slate-700 dark:border-gray-800 w-full glass">
-        &copy; 2026 National Hospital Management System. Designed for Software Engineering Project.
+        &copy; 2026 National Hospital Information Management System. Designed for Software Engineering Project.
     </footer>
 </body>
 

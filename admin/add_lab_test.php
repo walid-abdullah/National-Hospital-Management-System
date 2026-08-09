@@ -19,7 +19,7 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add Lab Test - NHMS</title>
+    <title>Add Lab Test - NHIMS</title>
     <script src="https://cdn.tailwindcss.com"></script>
 
     
@@ -65,13 +65,7 @@ try {
 
 
 <body class="bg-slate-50 text-slate-800 antialiased selection:bg-blue-200 selection:text-blue-900 flex flex-col min-h-screen transition-colors duration-300 dark:bg-gray-900 dark:text-gray-100">
-    <nav class="glass-nav sticky top-0 z-50 p-4 shadow-sm text-gray-800 dark:text-gray-100 flex justify-between items-center">
-        <h1 class="text-2xl font-extrabold custom-gradient-text tracking-tight">NHMS Admin</h1>
-        <div class="flex items-center space-x-4">
-            <a href="lab_tests.php" class="text-blue-200 hover:text-gray-600 dark:text-gray-300 hover:text-blue-600 transition">Back to Lab Tests</a>
-            <a href="../logout.php" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded text-sm transition shadow">Logout</a>
-        </div>
-    </nav>
+    <?php include 'includes/navbar.php'; ?>
     <div class="max-w-3xl mx-auto animate-fade-in-up p-6 mt-6">
         <div class="bg-white dark:bg-slate-800 rounded-xl shadow-md p-8 border border-gray-100 dark:border-slate-700">
             <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-6">Add Lab Test Record</h2>
@@ -112,7 +106,7 @@ try {
     </div>
 
     <footer class="mt-auto py-6 text-center text-gray-500 dark:text-gray-400 dark:text-gray-400 text-sm border-t border-gray-200 dark:border-slate-700 dark:border-gray-800 w-full glass">
-        &copy; 2026 National Hospital Management System. Designed for Software Engineering Project.
+        &copy; 2026 National Hospital Information Management System. Designed for Software Engineering Project.
     </footer>
 </body>
 

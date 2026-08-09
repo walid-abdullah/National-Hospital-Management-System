@@ -35,7 +35,7 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lab Dashboard - NHMS</title>
+    <title>Lab Dashboard - NHIMS</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = { darkMode: 'class', }
@@ -53,7 +53,7 @@ try {
 </head>
 <body class="bg-slate-50 text-slate-800 flex flex-col min-h-screen dark:bg-gray-900 dark:text-gray-100 transition-colors duration-300">
     <nav class="glass-nav sticky top-0 z-50 p-4 shadow-sm flex justify-between items-center">
-        <h1 class="text-2xl font-extrabold custom-gradient-text tracking-tight">NHMS - Laboratory</h1>
+        <h1 class="text-2xl font-extrabold custom-gradient-text tracking-tight">NHIMS - Laboratory</h1>
         <div class="flex items-center space-x-4">
             <span class="border-l border-yellow-400 h-6 mx-2"></span>
             <span>Welcome, Lab Tech <?php echo htmlspecialchars($_SESSION['username']); ?></span>

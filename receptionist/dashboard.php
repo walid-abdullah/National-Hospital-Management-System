@@ -11,7 +11,7 @@ require_once '../config/db.php';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Receptionist Dashboard - NHMS</title>
+    <title>Receptionist Dashboard - NHIMS</title>
     <script src="https://cdn.tailwindcss.com"></script>
 
     
@@ -58,7 +58,7 @@ require_once '../config/db.php';
 
 <body class="bg-slate-50 text-slate-800 antialiased selection:bg-blue-200 selection:text-blue-900 flex flex-col min-h-screen transition-colors duration-300 dark:bg-gray-900 dark:text-gray-100">
     <nav class="glass-nav sticky top-0 z-50 p-4 shadow-sm text-gray-800 dark:text-gray-100 flex justify-between items-center">
-        <h1 class="text-2xl font-extrabold custom-gradient-text tracking-tight">NHMS - Reception Desk</h1>
+        <h1 class="text-2xl font-extrabold custom-gradient-text tracking-tight">NHIMS - Reception Desk</h1>
         <div class="flex items-center space-x-4">
             <a href="dashboard.php" class="text-purple-200 hover:text-gray-600 dark:text-gray-300 hover:text-blue-600 transition font-medium">Dashboard</a>
             <span class="border-l border-purple-400 h-6 mx-2"></span>
@@ -73,21 +73,27 @@ require_once '../config/db.php';
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="bg-purple-50 p-6 rounded-lg border border-purple-100">
-                    <h3 class="text-xl font-semibold text-purple-800">Patient List</h3>
-                    <p class="text-sm text-purple-600 mt-2">View all registered patients.</p>
-                    <a href="patients.php" class="inline-block mt-4 bg-gradient-to-r from-purple-500 to-pink-600 text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 px-4 py-2 rounded shadow hover:bg-purple-700">View Patients</a>
+                    <h3 class="text-xl font-semibold text-purple-800">Patient List & Registration</h3>
+                    <p class="text-sm text-purple-600 mt-2">View all patients or register offline patients.</p>
+                    <div class="mt-4 flex space-x-3">
+                        <a href="patients.php" class="inline-block bg-gradient-to-r from-purple-500 to-pink-600 text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 px-4 py-2 rounded">View Patients</a>
+                        <a href="../register.php" target="_blank" class="inline-block bg-white text-purple-700 border border-purple-200 shadow hover:shadow-md transition-all duration-200 px-4 py-2 rounded">Offline Reg.</a>
+                    </div>
                 </div>
                 <div class="bg-pink-50 p-6 rounded-lg border border-pink-100">
-                    <h3 class="text-xl font-semibold text-pink-800">Appointments</h3>
-                    <p class="text-sm text-pink-600 mt-2">View all doctor appointments.</p>
-                    <a href="appointments.php" class="inline-block mt-4 bg-pink-600 text-white px-4 py-2 rounded shadow hover:bg-pink-700">View Appointments</a>
+                    <h3 class="text-xl font-semibold text-pink-800">Queue Management</h3>
+                    <p class="text-sm text-pink-600 mt-2">Manage appointments and queue status.</p>
+                    <div class="mt-4 flex space-x-3">
+                        <a href="appointments.php" class="inline-block bg-pink-600 text-white px-4 py-2 rounded shadow hover:bg-pink-700">Manage Queue</a>
+                        <a href="appointments.php?quick_book=1" class="inline-block bg-white text-pink-700 border border-pink-200 shadow hover:shadow-md px-4 py-2 rounded">Quick Book</a>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <footer class="mt-auto py-6 text-center text-gray-500 dark:text-gray-400 dark:text-gray-400 text-sm border-t border-gray-200 dark:border-slate-700 dark:border-gray-800 w-full glass">
-        &copy; 2026 National Hospital Management System. Designed for Software Engineering Project.
+        &copy; 2026 National Hospital Information Management System. Designed for Software Engineering Project.
     </footer>
 </body>
 

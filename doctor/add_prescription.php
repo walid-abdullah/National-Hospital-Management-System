@@ -7,32 +7,50 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Doctor') {
 require_once '../config/db.php';
 
 $user_id = $_SESSION['user_id'];
-$stmt = $conn->prepare("SELECT doctor_id FROM doctors WHERE user_id = :user_id");
+$stmt = $conn->prepare("SELECT id as doctor_id FROM doctors WHERE user_id = :user_id");
 $stmt->bindParam(':user_id', $user_id);
 $stmt->execute();
 $doctor = $stmt->fetch(PDO::FETCH_ASSOC);
 $doctor_id = $doctor['doctor_id'];
 
 // Get patients assigned to this doctor
-$stmt_pat = $conn->prepare("SELECT DISTINCT p.patient_id, p.name FROM patients p JOIN appointments a ON p.patient_id = a.patient_id WHERE a.doctor_id = :did");
+$stmt_pat = $conn->prepare("SELECT DISTINCT p.id as patient_id, p.name FROM patients p JOIN appointments a ON p.id = a.patient_id WHERE a.doctor_id = :did");
 $stmt_pat->bindParam(':did', $doctor_id);
 $stmt_pat->execute();
 $patients = $stmt_pat->fetchAll(PDO::FETCH_ASSOC);
 
+$selected_patient_id = '';
+if (isset($_GET['apt_id'])) {
+    $apt_id = intval($_GET['apt_id']);
+    $stmt_apt = $conn->prepare("SELECT patient_id FROM appointments WHERE id = ?");
+    $stmt_apt->execute([$apt_id]);
+    $apt_data = $stmt_apt->fetch(PDO::FETCH_ASSOC);
+    if ($apt_data) {
+        $selected_patient_id = $apt_data['patient_id'];
+    }
+}
+
 $msg = '';
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $patient_id = $_POST['patient_id'];
-    $medicine = trim($_POST['medicine']);
-    $dosage = trim($_POST['dosage']);
+    $medicine = trim($_POST['medicine'] ?? '');
+    $dosage = trim($_POST['dosage'] ?? '');
+    $tests = trim($_POST['tests'] ?? '');
 
-    if (!empty($patient_id) && !empty($medicine) && !empty($dosage)) {
+    if (!empty($patient_id) && (!empty($medicine) || !empty($tests))) {
         try {
-            $insert = $conn->prepare("INSERT INTO prescriptions (patient_id, doctor_id, medicine, dosage) VALUES (?, ?, ?, ?)");
-            $insert->execute([$patient_id, $doctor_id, $medicine, $dosage]);
+            $medicines_json = null;
+            if (!empty($medicine)) {
+                $medicines_json = json_encode([['name' => $medicine, 'dosage' => $dosage]]);
+            }
+            $insert = $conn->prepare("INSERT INTO prescriptions (patient_id, doctor_id, medicines, tests) VALUES (?, ?, ?, ?)");
+            $insert->execute([$patient_id, $doctor_id, $medicines_json, empty($tests) ? null : $tests]);
             $msg = "<div class='bg-green-100 text-green-700 p-4 rounded mb-4'>Prescription issued successfully!</div>";
         } catch(PDOException $e) {
             $msg = "<div class='bg-red-100 text-red-700 p-4 rounded mb-4'>Error: " . $e->getMessage() . "</div>";
         }
+    } else {
+        $msg = "<div class='bg-red-100 text-red-700 p-4 rounded mb-4'>Please prescribe at least one Medicine or Lab Test.</div>";
     }
 }
 ?>
@@ -41,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Write Prescription - NHMS</title>
+    <title>Write Prescription - NHIMS</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = { darkMode: 'class', }
@@ -60,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <body class="bg-slate-50 text-slate-800 flex flex-col min-h-screen dark:bg-gray-900 dark:text-gray-100 transition-colors duration-300">
     
     <nav class="glass-nav sticky top-0 z-50 p-4 shadow-sm flex justify-between items-center">
-        <h1 class="text-2xl font-extrabold custom-gradient-text tracking-tight">NHMS Doctor</h1>
+        <h1 class="text-2xl font-extrabold custom-gradient-text tracking-tight">NHIMS Doctor</h1>
         <div class="flex items-center space-x-4">
             <a href="prescriptions.php" class="text-blue-500 hover:underline text-sm font-semibold">&larr; Back to Prescriptions</a>
         </div>
@@ -76,17 +94,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <select name="patient_id" required class="w-full px-4 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-white">
                         <option value="" disabled selected>Choose a patient...</option>
                         <?php foreach($patients as $pat): ?>
-                            <option value="<?php echo $pat['patient_id']; ?>"><?php echo htmlspecialchars($pat['name']); ?></option>
+                            <option value="<?php echo $pat['patient_id']; ?>" <?php echo ($selected_patient_id == $pat['patient_id']) ? 'selected' : ''; ?>><?php echo htmlspecialchars($pat['name']); ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Medicine</label>
-                    <textarea name="medicine" rows="3" required placeholder="e.g., Paracetamol 500mg, Amoxicillin" class="w-full px-4 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-white"></textarea>
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Medicine (Optional)</label>
+                    <textarea name="medicine" rows="2" placeholder="e.g., Paracetamol 500mg, Amoxicillin" class="w-full px-4 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-white"></textarea>
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Dosage Instructions</label>
-                    <input type="text" name="dosage" required placeholder="e.g., 1-1-1 (After meal) for 7 days" class="w-full px-4 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-white">
+                    <input type="text" name="dosage" placeholder="e.g., 1-1-1 (After meal) for 7 days" class="w-full px-4 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-white">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Lab Tests (Optional)</label>
+                    <textarea name="tests" rows="2" placeholder="e.g., Complete Blood Count (CBC), Chest X-Ray" class="w-full px-4 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-white"></textarea>
                 </div>
                 <div class="pt-4">
                     <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow">Submit Prescription</button>

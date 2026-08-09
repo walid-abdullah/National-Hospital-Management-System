@@ -9,7 +9,7 @@ if (session_status() === PHP_SESSION_NONE) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NHMS - National Hospital Management System</title>
+    <title>NHIMS - National Hospital Information Management System</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -79,13 +79,14 @@ if (session_status() === PHP_SESSION_NONE) {
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
                             </svg>
                         </div>
-                        <span class="text-2xl font-extrabold custom-gradient-text tracking-tight">NHMS</span>
+                        <span class="text-2xl font-extrabold custom-gradient-text tracking-tight">NHIMS</span>
                     </a>
                 </div>
 
                 <!-- Desktop Menu -->
                 <div class="hidden md:flex space-x-8 items-center">
                     <a href="index.php" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">Home</a>
+                    <a href="hospitals.php" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">Hospitals</a>
                     <a href="public_doctors.php" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">Find a Doctor</a>
                     <a href="public_lab.php" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">Lab Services</a>
                     
@@ -97,12 +98,46 @@ if (session_status() === PHP_SESSION_NONE) {
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 block dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
                     </button>
 
-                    <a href="login.php" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 font-medium transition-colors">Portal Login</a>
+                    <a href="register.php" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">Register</a>
+                    <a href="login.php" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">Portal Login</a>
                     <a href="book_online.php" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-2.5 px-6 rounded-xl shadow-lg hover:shadow-indigo-500/30 transform hover:-translate-y-0.5 transition-all duration-300">Book Appointment</a>
+                </div>
+
+                <!-- Mobile Menu Button -->
+                <div class="flex items-center md:hidden space-x-4">
+                    <button onclick="toggleDarkMode()" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-500 dark:text-gray-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 block dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+                    </button>
+                    <button type="button" id="mobileMenuBtn" class="text-gray-500 hover:text-blue-600 focus:outline-none p-2" aria-label="Toggle menu">
+                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Mobile Menu -->
+            <div id="mobileMenu" class="hidden md:hidden pb-4 pt-2 border-t border-gray-200 dark:border-slate-800">
+                <div class="flex flex-col space-y-3 px-2">
+                    <a href="index.php" class="text-gray-700 dark:text-gray-300 font-medium px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">Home</a>
+                    <a href="hospitals.php" class="text-gray-700 dark:text-gray-300 font-medium px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">Hospitals</a>
+                    <a href="public_doctors.php" class="text-gray-700 dark:text-gray-300 font-medium px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">Find a Doctor</a>
+                    <a href="public_lab.php" class="text-gray-700 dark:text-gray-300 font-medium px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">Lab Services</a>
+                    <a href="register.php" class="text-gray-700 dark:text-gray-300 font-medium px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">Register</a>
+                    <a href="login.php" class="text-gray-700 dark:text-gray-300 font-medium px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">Portal Login</a>
+                    <a href="book_online.php" class="bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-lg text-center mt-2">Book Appointment</a>
                 </div>
             </div>
         </div>
     </nav>
+
+    <script>
+        document.getElementById('mobileMenuBtn').addEventListener('click', function() {
+            var menu = document.getElementById('mobileMenu');
+            menu.classList.toggle('hidden');
+        });
+    </script>
     
     <!-- Main Content Wrapper -->
     <main class="flex-grow flex flex-col">

@@ -8,9 +8,10 @@ require_once '../config/db.php';
 
 // Fetch all lab tests
 try {
-    $query = "SELECT l.test_id, p.name AS patient_name, l.test_name, l.test_result, l.test_date 
+    $query = "SELECT l.id as test_id, p.name AS patient_name, s.service_name as test_name, l.result_text as test_result, l.test_date 
               FROM laboratory_tests l 
-              JOIN patients p ON l.patient_id = p.patient_id 
+              JOIN patients p ON l.patient_id = p.id 
+              JOIN lab_services s ON l.service_id = s.id 
               ORDER BY l.test_date DESC";
     $stmt = $conn->prepare($query);
     $stmt->execute();
@@ -24,7 +25,7 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lab Tests - NHMS</title>
+    <title>Lab Tests - NHIMS</title>
     <script src="https://cdn.tailwindcss.com"></script>
 
     
@@ -66,18 +67,15 @@ try {
             }
         }
     </script>
+
+    <link href="https://cdn.jsdelivr.net/npm/simple-datatables@latest/dist/style.css" rel="stylesheet" type="text/css">
+    <script src="https://cdn.jsdelivr.net/npm/simple-datatables@latest" type="text/javascript"></script>
 </head>
 
 
 <body class="bg-slate-50 text-slate-800 antialiased selection:bg-blue-200 selection:text-blue-900 flex flex-col min-h-screen transition-colors duration-300 dark:bg-gray-900 dark:text-gray-100">
     <!-- Navbar -->
-    <nav class="glass-nav sticky top-0 z-50 p-4 shadow-sm text-gray-800 dark:text-gray-100 flex justify-between items-center">
-        <h1 class="text-2xl font-extrabold custom-gradient-text tracking-tight">NHMS Admin</h1>
-        <div class="flex items-center space-x-4">
-            <a href="dashboard.php" class="text-blue-200 hover:text-gray-600 dark:text-gray-300 hover:text-blue-600 transition">Dashboard</a>
-            <a href="../logout.php" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded text-sm transition shadow">Logout</a>
-        </div>
-    </nav>
+    <?php include 'includes/navbar.php'; ?>
 
     <div class="max-w-6xl mx-auto animate-fade-in-up p-6 mt-6">
         <div class="flex justify-between items-center mb-6">
@@ -121,8 +119,21 @@ try {
     </div>
 
     <footer class="mt-auto py-6 text-center text-gray-500 dark:text-gray-400 dark:text-gray-400 text-sm border-t border-gray-200 dark:border-slate-700 dark:border-gray-800 w-full glass">
-        &copy; 2026 National Hospital Management System. Designed for Software Engineering Project.
+        &copy; 2026 National Hospital Information Management System. Designed for Software Engineering Project.
     </footer>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const table = document.querySelector("table");
+            if (table) {
+                new simpleDatatables.DataTable(table, {
+                    searchable: true,
+                    fixedHeight: false,
+                    perPage: 15
+                });
+            }
+        });
+    </script>
 </body>
 
 </html>

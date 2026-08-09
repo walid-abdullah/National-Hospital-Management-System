@@ -14,17 +14,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     try {
-        $stmt = $conn->prepare("SELECT id, username, password, role FROM users WHERE username = :username AND role = :role LIMIT 1");
+        $stmt = $conn->prepare("SELECT id, username, password, role, status FROM users WHERE username = :username AND role = :role LIMIT 1");
         $stmt->bindParam(':username', $username);
         $stmt->bindParam(':role', $role);
         $stmt->execute();
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($user) {
-            // Check password (in real world use password_verify with hashed passwords)
-            // For simplicity in this demo, we check MD5 since we used md5 in the SQL dump, 
-            // OR simple plain text. Let's assume MD5 for some security feeling.
-            if (md5($password) === $user['password']) {
+            if (password_verify($password, $user['password'])) {
+                if ($user['status'] !== 'Approved') {
+                    $_SESSION['error'] = "Your account is currently " . $user['status'] . ". Please contact Admin.";
+                    header("Location: login.php");
+                    exit();
+                }
+
                 // Set session variables
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['username'] = $user['username'];
@@ -43,6 +46,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         break;
                     case 'Laboratory Staff':
                         header("Location: lab/dashboard.php");
+                        break;
+                    case 'Pharmacist':
+                        header("Location: pharmacy/dashboard.php");
                         break;
                     case 'Patient':
                         header("Location: patient/dashboard.php");
