@@ -108,7 +108,7 @@ $query = "SELECT a.id as appointment_id, d.name as doctor_name, d.specialization
                                 <?php if($apt['status'] == 'Completed'): ?>
                                     <span class="text-emerald-600 text-xs font-bold">✅ Consultation Finished</span>
                                 <?php elseif($apt['status'] == 'Confirmed' && $apt['appointment_type'] === 'Telemedicine'): ?>
-                                    <a href="#" class="join-tele-btn bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white px-4 py-2 rounded text-xs font-bold shadow-lg transform hover:scale-105 transition-all inline-block">📹 Join Video Call</a>
+                                    <button type="button" data-appointment-id="<?php echo (int) $apt['appointment_id']; ?>" class="join-tele-btn bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white px-4 py-2 rounded text-xs font-bold shadow-lg transform hover:scale-105 transition-all inline-block">📹 Join Video Call</button>
                                 <?php elseif($apt['status'] == 'Confirmed' && $apt['appointment_type'] === 'Physical'): ?>
                                     <a href="print_token.php?id=<?php echo $apt['appointment_id']; ?>" target="_blank" class="bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white px-4 py-2 rounded text-xs font-bold shadow-lg transform hover:scale-105 transition-all inline-block">🎟️ View Queue Token</a>
                                 <?php elseif($apt['status'] == 'Pending'): ?>
@@ -127,8 +127,15 @@ $query = "SELECT a.id as appointment_id, d.name as doctor_name, d.specialization
         </div>
     </div>
 
-    <!-- Toast Notification Container -->
-    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-3"></div>
+    <div id="video-call-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 p-4 sm:p-8" role="dialog" aria-modal="true" aria-labelledby="video-call-title">
+        <div class="mx-auto flex w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-slate-800">
+            <div class="flex items-center justify-between border-b border-gray-200 p-4 dark:border-slate-700">
+                <h2 id="video-call-title" class="text-lg font-bold text-gray-900 dark:text-white">NHIMS Telemedicine Consultation</h2>
+                <button type="button" id="close-video-call" class="rounded-lg bg-red-500 px-4 py-2 text-sm font-bold text-white hover:bg-red-600" aria-label="End call and close">End Call / Close</button>
+            </div>
+            <iframe id="video-call-frame" title="Jitsi video consultation" width="100%" height="550px" class="w-full border-0" allow="camera; microphone; fullscreen; display-capture; autoplay"></iframe>
+        </div>
+    </div>
 
     <script>
         function showToast(message, type = 'success') {
@@ -165,12 +172,37 @@ $query = "SELECT a.id as appointment_id, d.name as doctor_name, d.specialization
             teleBtns.forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.preventDefault();
-                    showToast('Connecting to secure video server...', 'info');
-                    setTimeout(() => {
-                        showToast('Video Call Started successfully.', 'success');
-                    }, 1500);
+                    return;
                 });
             });
+        });
+    </script>
+
+    <script>
+        const videoCallModal = document.getElementById('video-call-modal');
+        const videoCallFrame = document.getElementById('video-call-frame');
+        function showToast() {}
+        function closeVideoCall() {
+            videoCallFrame.src = '';
+            videoCallModal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        }
+        document.querySelectorAll('.join-tele-btn').forEach((btn) => {
+            btn.addEventListener('click', (event) => {
+                event.preventDefault();
+                const room = `NHIMS_Consultation_Room_APT_${encodeURIComponent(btn.dataset.appointmentId)}`;
+                const displayName = <?php echo json_encode($_SESSION['username'] ?? 'Patient'); ?>;
+                videoCallFrame.src = `https://meet.jit.si/${room}#userInfo.displayName=${encodeURIComponent(JSON.stringify(displayName))}`;
+                videoCallModal.classList.remove('hidden');
+                document.body.classList.add('overflow-hidden');
+            });
+        });
+        document.getElementById('close-video-call').addEventListener('click', closeVideoCall);
+        videoCallModal.addEventListener('click', (event) => {
+            if (event.target === videoCallModal) closeVideoCall();
+        });
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && !videoCallModal.classList.contains('hidden')) closeVideoCall();
         });
     </script>
 

@@ -1,5 +1,6 @@
 <?php
-session_start();
+require_once '../includes/security.php';
+init_secure_session();
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Patient') {
     header("Location: ../login.php");
     exit();
@@ -73,6 +74,7 @@ if ($patient) {
                         <th class="p-4 border-b">Details</th>
                         <th class="p-4 border-b text-right">Amount</th>
                         <th class="p-4 border-b text-center">Status</th>
+                        <th class="p-4 border-b text-center">Receipt</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
@@ -108,10 +110,13 @@ if ($patient) {
                                     </div>
                                 <?php endif; ?>
                             </td>
+                            <td class="p-4 text-center align-top">
+                                <a href="print_receipt.php?id=<?php echo (int) $bill['id']; ?>" target="_blank" rel="noopener" class="inline-block bg-gradient-to-r from-teal-500 to-emerald-600 text-white text-xs px-3 py-1.5 rounded shadow hover:scale-105 transition transform">Print Receipt</a>
+                            </td>
                         </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <tr><td colspan="5" class="p-6 text-center text-gray-500 dark:text-gray-400">No billing history found.</td></tr>
+                        <tr><td colspan="6" class="p-6 text-center text-gray-500 dark:text-gray-400">No billing history found.</td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>

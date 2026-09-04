@@ -11,6 +11,7 @@
     <img src="https://img.shields.io/badge/Frontend-TailwindCSS_v3_%E2%80%A2_JS_ES6-06B6D4?style=flat-square" alt="Tailwind CSS" />
     <img src="https://img.shields.io/badge/Analytics-Chart.js-E11D48?style=flat-square" alt="Chart.js" />
     <img src="https://img.shields.io/badge/Security-RBAC_%E2%80%A2_Bcrypt-059669?style=flat-square" alt="Security" />
+    <img src="https://img.shields.io/badge/Security_%26_Vulnerability_Hardening-CSRF_%E2%80%A2_IDOR_%E2%80%A2_XSS-DC2626?style=flat-square" alt="Security and Vulnerability Hardening" />
   </p>
 
 </div>
@@ -195,7 +196,22 @@ cd nhms
 - **SQL Injection Prevention:** 100% of database queries execute through **PDO Prepared Statements** with bound parameters.
 - **Cryptographic Security:** Passwords hashed with one-way **Bcrypt** algorithm via `password_hash()`.
 - **XSS Defense:** Dynamic output escaped using `htmlspecialchars(..., ENT_QUOTES, 'UTF-8')`.
+- **CSRF Protection:** CSRF token validation is enforced across all state-changing forms and actions.
+- **Session Fixation Protection:** Successful authentication regenerates the session identifier with `session_regenerate_id(true)`.
+- **IDOR Prevention:** Clinical prescriptions and invoices enforce server-side ownership and role authorization checks.
+- **Stored XSS Sanitization:** User-controlled values are escaped before HTML output using the shared `e()` helper.
+- **Role Registration Allowlisting:** Public registration accepts only approved non-administrative roles; Admin registration is rejected.
 - **System Audit Trail:** Administrative activities logged in `system_logs` with IP signatures and timestamps.
+
+### Security Change Deployment
+
+Use these commands to stage all modified files, create a descriptive commit, and push directly to `origin main`:
+
+```bash
+git add -A
+git commit -m "fix: harden PHP security controls"
+git push origin main
+```
 
 ---
 

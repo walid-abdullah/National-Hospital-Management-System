@@ -8,6 +8,10 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Doctor') {
 require_once '../config/db.php';
 
 $user_id = $_SESSION['user_id'];
+$per_page = 10;
+$page = max(1, (int) ($_GET['page'] ?? 1));
+$search = trim($_GET['search'] ?? '');
+$like = '%' . $search . '%';
 
 // Get doctor id
 $stmt = $conn->prepare("SELECT id as doctor_id FROM doctors WHERE user_id = :user_id");
@@ -17,18 +21,41 @@ $doctor = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if ($doctor) {
     $doctor_id = $doctor['doctor_id'];
+    $count_query = "SELECT COUNT(*) FROM appointments a JOIN patients p ON a.patient_id = p.id
+                    WHERE a.doctor_id = :doctor_id
+                    AND (p.name LIKE :name_search OR a.appointment_type LIKE :type_search OR a.status LIKE :status_search)";
+    $count_stmt = $conn->prepare($count_query);
+    $count_stmt->execute([
+        ':doctor_id' => $doctor_id,
+        ':name_search' => $like,
+        ':type_search' => $like,
+        ':status_search' => $like,
+    ]);
+    $total_items = (int) $count_stmt->fetchColumn();
+    $total_pages = max(1, (int) ceil($total_items / $per_page));
+    $page = min($page, $total_pages);
+    $offset = ($page - 1) * $per_page;
+
     // Get appointments
-    $query = "SELECT a.id as appointment_id, p.name AS patient_name, p.age, p.gender, a.appointment_date, a.appointment_type, a.status 
+    $query = "SELECT a.id as appointment_id, p.name AS patient_name, p.age, p.gender, a.appointment_date, a.appointment_type, a.status
               FROM appointments a 
               JOIN patients p ON a.patient_id = p.id 
-              WHERE a.doctor_id = :doctor_id 
-              ORDER BY a.appointment_date ASC";
+              WHERE a.doctor_id = :doctor_id
+              AND (p.name LIKE :name_search OR a.appointment_type LIKE :type_search OR a.status LIKE :status_search)
+              ORDER BY a.appointment_date ASC LIMIT :limit OFFSET :offset";
     $stmt2 = $conn->prepare($query);
-    $stmt2->bindParam(':doctor_id', $doctor_id);
+    $stmt2->bindValue(':doctor_id', $doctor_id, PDO::PARAM_INT);
+    $stmt2->bindValue(':name_search', $like, PDO::PARAM_STR);
+    $stmt2->bindValue(':type_search', $like, PDO::PARAM_STR);
+    $stmt2->bindValue(':status_search', $like, PDO::PARAM_STR);
+    $stmt2->bindValue(':limit', $per_page, PDO::PARAM_INT);
+    $stmt2->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt2->execute();
     $appointments = $stmt2->fetchAll(PDO::FETCH_ASSOC);
 } else {
     $appointments = [];
+    $total_items = 0;
+    $total_pages = 1;
 }
 ?>
 <!DOCTYPE html>
@@ -37,9 +64,8 @@ if ($doctor) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Appointments - Doctor Portal</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com">    </script>
 
-    
     <script>
         tailwind.config = {
           darkMode: 'class',
@@ -80,6 +106,11 @@ if ($doctor) {
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100">My Appointments</h2>
         </div>
+        <form method="GET" class="mb-6 flex flex-col sm:flex-row gap-3">
+            <input type="search" name="search" value="<?php echo e($search); ?>" placeholder="Search by patient, type, or status..." class="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-white">
+            <button type="submit" class="px-5 py-2.5 rounded-xl bg-blue-600 text-white font-semibold">Search</button>
+            <?php if ($search !== ''): ?><a href="appointments.php" class="px-5 py-2.5 rounded-xl bg-gray-200 text-gray-700 font-semibold text-center">Clear</a><?php endif; ?>
+        </form>
 
         <div class="glass rounded-2xl shadow-xl border border-white/50 overflow-hidden">
             <table class="w-full text-left border-collapse">
@@ -120,7 +151,7 @@ if ($doctor) {
                             </td>
                             <td class="p-4 text-sm">
                                 <?php if($apt['status'] == 'Confirmed' && $apt['appointment_type'] === 'Telemedicine'): ?>
-                                    <a href="#" class="join-tele-btn bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white px-4 py-2 rounded text-xs font-bold shadow-lg transform hover:scale-105 transition-all inline-block">📹 Start Call</a>
+                                    <button type="button" data-appointment-id="<?php echo (int) $apt['appointment_id']; ?>" class="join-tele-btn bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white px-4 py-2 rounded text-xs font-bold shadow-lg transform hover:scale-105 transition-all inline-block">📹 Start Call</button>
                                 <?php elseif($apt['status'] == 'Confirmed'): ?>
                                     <a href="add_prescription.php?apt_id=<?php echo $apt['appointment_id']; ?>" class="bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white px-4 py-2 rounded text-xs font-bold shadow-lg transform hover:scale-105 transition-all inline-block">Write Prescription</a>
                                 <?php endif; ?>
@@ -135,10 +166,24 @@ if ($doctor) {
                 </tbody>
             </table>
         </div>
+        <div class="flex items-center justify-between mt-6">
+            <span class="text-sm text-gray-500 dark:text-gray-400">Page <?php echo $page; ?> of <?php echo $total_pages; ?> (<?php echo $total_items; ?> appointments)</span>
+            <div class="flex gap-2">
+                <?php if ($page > 1): ?><a href="?search=<?php echo urlencode($search); ?>&page=<?php echo $page - 1; ?>" class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold">Prev</a><?php endif; ?>
+                <?php if ($page < $total_pages): ?><a href="?search=<?php echo urlencode($search); ?>&page=<?php echo $page + 1; ?>" class="px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold">Next</a><?php endif; ?>
+            </div>
+        </div>
     </div>
 
-    <!-- Toast Notification Container -->
-    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-3"></div>
+    <div id="video-call-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 p-4 sm:p-8" role="dialog" aria-modal="true" aria-labelledby="video-call-title">
+        <div class="mx-auto flex w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-slate-800">
+            <div class="flex items-center justify-between border-b border-gray-200 p-4 dark:border-slate-700">
+                <h2 id="video-call-title" class="text-lg font-bold text-gray-900 dark:text-white">NHIMS Telemedicine Consultation</h2>
+                <button type="button" id="close-video-call" class="rounded-lg bg-red-500 px-4 py-2 text-sm font-bold text-white hover:bg-red-600" aria-label="End call and close">End Call / Close</button>
+            </div>
+            <iframe id="video-call-frame" title="Jitsi video consultation" width="100%" height="550px" class="w-full border-0" allow="camera; microphone; fullscreen; display-capture; autoplay"></iframe>
+        </div>
+    </div>
 
     <script>
         function showToast(message, type = 'success') {
@@ -175,12 +220,37 @@ if ($doctor) {
             teleBtns.forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.preventDefault();
-                    showToast('Initializing Doctor Camera & Mic...', 'info');
-                    setTimeout(() => {
-                        showToast('Telemedicine Session is Live. Recording started.', 'success');
-                    }, 1500);
+                    return;
                 });
             });
+        });
+    </script>
+
+    <script>
+        const videoCallModal = document.getElementById('video-call-modal');
+        const videoCallFrame = document.getElementById('video-call-frame');
+        function showToast() {}
+        function closeVideoCall() {
+            videoCallFrame.src = '';
+            videoCallModal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        }
+        document.querySelectorAll('.join-tele-btn').forEach((btn) => {
+            btn.addEventListener('click', (event) => {
+                event.preventDefault();
+                const room = `NHIMS_Consultation_Room_APT_${encodeURIComponent(btn.dataset.appointmentId)}`;
+                const displayName = <?php echo json_encode($_SESSION['username'] ?? 'Doctor'); ?>;
+                videoCallFrame.src = `https://meet.jit.si/${room}#userInfo.displayName=${encodeURIComponent(JSON.stringify(displayName))}`;
+                videoCallModal.classList.remove('hidden');
+                document.body.classList.add('overflow-hidden');
+            });
+        });
+        document.getElementById('close-video-call').addEventListener('click', closeVideoCall);
+        videoCallModal.addEventListener('click', (event) => {
+            if (event.target === videoCallModal) closeVideoCall();
+        });
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && !videoCallModal.classList.contains('hidden')) closeVideoCall();
         });
     </script>
 

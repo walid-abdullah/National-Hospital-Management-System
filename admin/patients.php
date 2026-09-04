@@ -5,6 +5,10 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
     exit();
 }
 require_once '../config/db.php';
+$per_page = 10;
+$page = max(1, (int) ($_GET['page'] ?? 1));
+$search = trim($_GET['search'] ?? '');
+$like = '%' . $search . '%';
 
 // Delete logic
 if (isset($_GET['delete_id'])) {
@@ -28,15 +32,37 @@ if (isset($_GET['delete_id'])) {
 
 // Fetch all patients with hospital name
 try {
-    $query = "SELECT p.id, p.name, p.age, p.gender, p.blood_group, p.phone, h.name AS hospital_name 
+    $count_stmt = $conn->prepare("SELECT COUNT(*) FROM patients p JOIN hospitals h ON p.hospital_id = h.id
+        WHERE p.name LIKE :name_search OR p.phone LIKE :phone_search OR p.blood_group LIKE :blood_search OR h.name LIKE :hospital_search");
+    $count_stmt->execute([
+        ':name_search' => $like,
+        ':phone_search' => $like,
+        ':blood_search' => $like,
+        ':hospital_search' => $like,
+    ]);
+    $total_items = (int) $count_stmt->fetchColumn();
+    $total_pages = max(1, (int) ceil($total_items / $per_page));
+    $page = min($page, $total_pages);
+    $offset = ($page - 1) * $per_page;
+
+    $query = "SELECT p.id, p.name, p.age, p.gender, p.blood_group, p.phone, h.name AS hospital_name
               FROM patients p 
               JOIN hospitals h ON p.hospital_id = h.id 
-              ORDER BY p.id DESC";
+              WHERE p.name LIKE :name_search OR p.phone LIKE :phone_search OR p.blood_group LIKE :blood_search OR h.name LIKE :hospital_search
+              ORDER BY p.id DESC LIMIT :limit OFFSET :offset";
     $stmt = $conn->prepare($query);
+    $stmt->bindValue(':name_search', $like, PDO::PARAM_STR);
+    $stmt->bindValue(':phone_search', $like, PDO::PARAM_STR);
+    $stmt->bindValue(':blood_search', $like, PDO::PARAM_STR);
+    $stmt->bindValue(':hospital_search', $like, PDO::PARAM_STR);
+    $stmt->bindValue(':limit', $per_page, PDO::PARAM_INT);
+    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->execute();
     $patients = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch(PDOException $e) {
     $error = "Error fetching patients: " . $e->getMessage();
+    $total_items = 0;
+    $total_pages = 1;
 }
 ?>
 <!DOCTYPE html>
@@ -87,8 +113,6 @@ try {
         }
     </script>
 
-    <link href="https://cdn.jsdelivr.net/npm/simple-datatables@latest/dist/style.css" rel="stylesheet" type="text/css">
-    <script src="https://cdn.jsdelivr.net/npm/simple-datatables@latest" type="text/javascript"></script>
 </head>
 
 
@@ -103,6 +127,11 @@ try {
                 + Add New Patient
             </a>
         </div>
+        <form method="GET" class="mb-6 flex flex-col sm:flex-row gap-3">
+            <input type="search" name="search" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search by name, phone, blood group, or hospital..." class="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-white">
+            <button type="submit" class="px-5 py-2.5 rounded-xl bg-blue-600 text-white font-semibold">Search</button>
+            <?php if ($search !== ''): ?><a href="patients.php" class="px-5 py-2.5 rounded-xl bg-gray-200 text-gray-700 font-semibold text-center">Clear</a><?php endif; ?>
+        </form>
 
         <?php if(isset($_SESSION['success'])): ?>
             <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4">
@@ -150,24 +179,19 @@ try {
                 </tbody>
             </table>
         </div>
+        <div class="flex items-center justify-between mt-6">
+            <span class="text-sm text-gray-500 dark:text-gray-400">Page <?php echo $page; ?> of <?php echo $total_pages; ?> (<?php echo $total_items; ?> patients)</span>
+            <div class="flex gap-2">
+                <?php if ($page > 1): ?><a href="?search=<?php echo urlencode($search); ?>&page=<?php echo $page - 1; ?>" class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold">Prev</a><?php endif; ?>
+                <?php if ($page < $total_pages): ?><a href="?search=<?php echo urlencode($search); ?>&page=<?php echo $page + 1; ?>" class="px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold">Next</a><?php endif; ?>
+            </div>
+        </div>
     </div>
 
     <footer class="mt-auto py-6 text-center text-gray-500 dark:text-gray-400 dark:text-gray-400 text-sm border-t border-gray-200 dark:border-slate-700 dark:border-gray-800 w-full glass">
         &copy; 2026 National Hospital Information Management System. Designed for Software Engineering Project.
     </footer>
 
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            const table = document.querySelector("table");
-            if (table) {
-                new simpleDatatables.DataTable(table, {
-                    searchable: true,
-                    fixedHeight: false,
-                    perPage: 15
-                });
-            }
-        });
-    </script>
 </body>
 
 </html>

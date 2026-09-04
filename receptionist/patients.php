@@ -6,12 +6,38 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Receptionist') {
     exit();
 }
 require_once '../config/db.php';
+$per_page = 10;
+$page = max(1, (int) ($_GET['page'] ?? 1));
+$search = trim($_GET['search'] ?? '');
+$like = '%' . $search . '%';
 try {
-    $stmt = $conn->prepare("SELECT * FROM patients ORDER BY id DESC");
+    $count_stmt = $conn->prepare("SELECT COUNT(*) FROM patients WHERE name LIKE :name_search OR phone LIKE :phone_search OR address LIKE :address_search OR gender LIKE :gender_search");
+    $count_stmt->execute([
+        ':name_search' => $like,
+        ':phone_search' => $like,
+        ':address_search' => $like,
+        ':gender_search' => $like,
+    ]);
+    $total_items = (int) $count_stmt->fetchColumn();
+    $total_pages = max(1, (int) ceil($total_items / $per_page));
+    $page = min($page, $total_pages);
+    $offset = ($page - 1) * $per_page;
+
+    $stmt = $conn->prepare("SELECT * FROM patients
+        WHERE name LIKE :name_search OR phone LIKE :phone_search OR address LIKE :address_search OR gender LIKE :gender_search
+        ORDER BY id DESC LIMIT :limit OFFSET :offset");
+    $stmt->bindValue(':name_search', $like, PDO::PARAM_STR);
+    $stmt->bindValue(':phone_search', $like, PDO::PARAM_STR);
+    $stmt->bindValue(':address_search', $like, PDO::PARAM_STR);
+    $stmt->bindValue(':gender_search', $like, PDO::PARAM_STR);
+    $stmt->bindValue(':limit', $per_page, PDO::PARAM_INT);
+    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->execute();
     $patients = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch(PDOException $e) {
     $error = "Error fetching patients: " . $e->getMessage();
+    $total_items = 0;
+    $total_pages = 1;
 }
 ?>
 <!DOCTYPE html>
@@ -75,6 +101,11 @@ try {
     </nav>
     <div class="max-w-6xl mx-auto animate-fade-in-up p-6 mt-6">
         <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-6">Patient List</h2>
+        <form method="GET" class="mb-6 flex flex-col sm:flex-row gap-3">
+            <input type="search" name="search" value="<?php echo e($search); ?>" placeholder="Search patients by name, phone, address..." class="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-white">
+            <button type="submit" class="px-5 py-2.5 rounded-xl bg-blue-600 text-white font-semibold">Search</button>
+            <?php if ($search !== ''): ?><a href="patients.php" class="px-5 py-2.5 rounded-xl bg-gray-200 text-gray-700 font-semibold text-center">Clear</a><?php endif; ?>
+        </form>
         <div class="glass rounded-2xl shadow-xl border border-white/50 overflow-hidden">
             <table class="w-full text-left border-collapse">
                 <thead>
@@ -102,6 +133,13 @@ try {
                     <?php endif; ?>
                 </tbody>
             </table>
+        </div>
+        <div class="flex items-center justify-between mt-6">
+            <span class="text-sm text-gray-500 dark:text-gray-400">Page <?php echo $page; ?> of <?php echo $total_pages; ?> (<?php echo $total_items; ?> patients)</span>
+            <div class="flex gap-2">
+                <?php if ($page > 1): ?><a href="?search=<?php echo urlencode($search); ?>&page=<?php echo $page - 1; ?>" class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold">Prev</a><?php endif; ?>
+                <?php if ($page < $total_pages): ?><a href="?search=<?php echo urlencode($search); ?>&page=<?php echo $page + 1; ?>" class="px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold">Next</a><?php endif; ?>
+            </div>
         </div>
     </div>
 
