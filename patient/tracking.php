@@ -32,42 +32,83 @@ $events[] = [
 ];
 
 // 2. Appointments
-$stmt = $conn->prepare("SELECT appointment_date, status FROM appointments WHERE patient_id = ?");
+$stmt = $conn->prepare("SELECT a.appointment_date, a.status, a.appointment_type, d.name as doctor_name, d.specialization FROM appointments a JOIN doctors d ON a.doctor_id = d.id WHERE a.patient_id = ?");
 $stmt->execute([$patient_id]);
 while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
     $events[] = [
-        'date' => $row['appointment_date'],
+        'date' => $row['appointment_date'] . ' 09:00:00',
         'type' => 'Appointment',
-        'title' => 'Doctor Appointment',
-        'description' => "Status: {$row['status']}.",
+        'title' => 'Doctor Appointment: ' . $row['doctor_name'],
+        'description' => "Specialist: {$row['specialization']} ({$row['appointment_type']}). Status: {$row['status']}.",
         'icon' => '🩺',
         'color' => 'bg-teal-500'
     ];
 }
 
-// 3. Lab Tests
-$stmt = $conn->prepare("SELECT l.test_date, s.service_name, l.status FROM laboratory_tests l JOIN lab_services s ON l.service_id = s.id WHERE l.patient_id = ?");
+// 3. Prescriptions
+$stmt = $conn->prepare("SELECT p.date_issued, d.name as doctor_name, p.medicines, p.id as prescription_id FROM prescriptions p JOIN doctors d ON p.doctor_id = d.id WHERE p.patient_id = ?");
+$stmt->execute([$patient_id]);
+while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+    $med_list = '';
+    $meds = json_decode($row['medicines'], true);
+    if (is_array($meds)) {
+        $names = array_map(function($m) { return is_array($m) ? ($m['name'] ?? 'Medicine') : $m; }, $meds);
+        $med_list = implode(', ', array_slice($names, 0, 3));
+        if (count($names) > 3) $med_list .= '...';
+    } else {
+        $med_list = !empty($row['medicines']) ? substr($row['medicines'], 0, 40) : 'Prescribed regimen';
+    }
+    $events[] = [
+        'date' => $row['date_issued'],
+        'type' => 'Prescription',
+        'title' => 'Prescription Issued (#' . $row['prescription_id'] . ')',
+        'description' => "By Dr. {$row['doctor_name']}. Advised: {$med_list}",
+        'icon' => '📄',
+        'color' => 'bg-emerald-500'
+    ];
+}
+
+// 4. Clinical Medical Records
+$stmt = $conn->prepare("SELECT m.visit_date, m.diagnosis, m.treatment, d.name as doctor_name FROM medical_records m JOIN doctors d ON m.doctor_id = d.id WHERE m.patient_id = ?");
 $stmt->execute([$patient_id]);
 while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
     $events[] = [
-        'date' => $row['test_date'] . ' 12:00:00', // appending time so sorting works better if date is just Date
+        'date' => $row['visit_date'] . ' 11:00:00',
+        'type' => 'Clinical Record',
+        'title' => 'Diagnosis: ' . $row['diagnosis'],
+        'description' => "Treatment: {$row['treatment']} (Consultant: Dr. {$row['doctor_name']})",
+        'icon' => '📋',
+        'color' => 'bg-indigo-500'
+    ];
+}
+
+// 5. Lab Tests
+$stmt = $conn->prepare("SELECT l.test_date, s.service_name, l.status, l.result_text FROM laboratory_tests l JOIN lab_services s ON l.service_id = s.id WHERE l.patient_id = ?");
+$stmt->execute([$patient_id]);
+while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+    $desc = "Result Status: {$row['status']}";
+    if ($row['status'] === 'Completed' && !empty($row['result_text'])) {
+        $desc .= " — " . substr($row['result_text'], 0, 40);
+    }
+    $events[] = [
+        'date' => $row['test_date'] . ' 14:00:00',
         'type' => 'Lab Test',
         'title' => 'Medical Test: ' . $row['service_name'],
-        'description' => "Result Status: {$row['status']}",
+        'description' => $desc,
         'icon' => '🔬',
         'color' => 'bg-purple-500'
     ];
 }
 
-// 4. Billing
-$stmt = $conn->prepare("SELECT bill_date, status, total_amount FROM billing WHERE patient_id = ?");
+// 6. Billing
+$stmt = $conn->prepare("SELECT bill_date, status, total_amount, invoice_number FROM billing WHERE patient_id = ?");
 $stmt->execute([$patient_id]);
 while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
     $events[] = [
         'date' => $row['bill_date'],
         'type' => 'Billing',
-        'title' => 'Invoice Generated',
-        'description' => "Amount: $" . number_format($row['total_amount'], 2) . ". Status: {$row['status']}",
+        'title' => 'Invoice: ' . ($row['invoice_number'] ?? 'NHIMS-INV'),
+        'description' => "Amount: ৳" . number_format($row['total_amount'], 2) . ". Status: {$row['status']}",
         'icon' => '💳',
         'color' => 'bg-orange-500'
     ];
