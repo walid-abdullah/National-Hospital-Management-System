@@ -1,5 +1,6 @@
 <?php
-session_start();
+require_once __DIR__ . '/../includes/security.php';
+init_secure_session();
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
     header("Location: ../login.php");
     exit();
@@ -85,6 +86,7 @@ try {
             <?php endif; ?>
 
             <form action="add_medical_record_action.php" method="POST" class="space-y-6">
+                <?= csrf_field() ?>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Patient -->

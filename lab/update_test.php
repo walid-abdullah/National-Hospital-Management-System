@@ -1,15 +1,19 @@
 <?php
-session_start();
+require_once __DIR__ . '/../includes/security.php';
+init_secure_session();
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Laboratory Staff') {
     header("Location: ../login.php");
     exit();
 }
-require_once '../config/db.php';
+require_once __DIR__ . '/../config/db.php';
 
 $test_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 $msg = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? null)) {
+        $msg = "<div class='bg-red-100 text-red-700 p-4 rounded mb-4'>Invalid security token.</div>";
+    } else {
     $result_text = trim($_POST['test_result'] ?? '');
     
     // File upload logic
@@ -25,6 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $destination = $upload_dir . $new_filename;
             if (move_uploaded_file($_FILES['report_file']['tmp_name'], $destination)) {
                 $file_path_db = 'uploads/lab_reports/' . $new_filename;
+            }
             }
         } else {
             $msg = "<div class='bg-red-100 text-red-700 p-4 rounded mb-4'>Invalid file type. Only PDF/JPG/PNG allowed.</div>";
@@ -115,6 +120,7 @@ try {
             </div>
 
             <form action="" method="POST" enctype="multipart/form-data" class="space-y-6">
+                <?php echo csrf_field(); ?>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Final Test Result / Report Details (Optional if file uploaded)</label>
                     <textarea name="test_result" rows="5" class="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-white"><?php 

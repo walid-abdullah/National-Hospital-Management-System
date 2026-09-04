@@ -1,10 +1,11 @@
 <?php
-session_start();
+require_once __DIR__ . '/../includes/security.php';
+init_secure_session();
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Patient') {
     header("Location: ../login.php");
     exit();
 }
-require_once '../config/db.php';
+require_once __DIR__ . '/../config/db.php';
 
 $user_id = $_SESSION['user_id'];
 $stmt = $conn->prepare("SELECT id, hospital_id FROM patients WHERE user_id = :user_id");
@@ -17,12 +18,16 @@ if ($patient) {
     $hospital_id = $patient['hospital_id'];
 
     if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_feedback'])) {
+        if (!verify_csrf_token($_POST['csrf_token'] ?? null)) {
+            $error = "Invalid security token. Please try again.";
+        } else {
         $rating = (int)$_POST['rating'];
         $review = trim($_POST['review']);
         
         $ins = $conn->prepare("INSERT INTO patient_feedback (hospital_id, patient_id, rating, review) VALUES (?, ?, ?, ?)");
         $ins->execute([$hospital_id, $patient_id, $rating, $review]);
         $success = "Thank you for your feedback!";
+        }
     }
 
     $stmt2 = $conn->prepare("SELECT * FROM patient_feedback WHERE patient_id = :patient_id ORDER BY created_at DESC");
@@ -68,9 +73,10 @@ if ($patient) {
             <h2 class="text-2xl font-bold mb-4 text-gray-800 dark:text-white">Share Your Experience</h2>
             <p class="text-gray-600 dark:text-gray-400 mb-6 text-sm">We value your feedback to improve our services.</p>
             
-            <?php if(isset($success)) echo "<div class='mb-6 p-4 bg-green-100 text-green-800 rounded-lg text-sm font-semibold border border-green-200'>$success</div>"; ?>
+            <?php if(isset($success)) echo "<div class='mb-6 p-4 bg-green-100 text-green-800 rounded-lg text-sm font-semibold border border-green-200'>" . e($success) . "</div>"; ?>
             
             <form method="POST" class="space-y-5">
+                <?php echo csrf_field(); ?>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Rating (1 to 5 Stars)</label>
                     <div class="flex gap-2 text-2xl cursor-pointer" id="star-rating">

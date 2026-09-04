@@ -1,5 +1,6 @@
 <?php
-session_start();
+require_once __DIR__ . '/../includes/security.php';
+init_secure_session();
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
     header("Location: ../login.php");
     exit();
@@ -25,6 +26,10 @@ if (!$doctor) {
 
 // Handle update
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? null)) {
+        http_response_code(403);
+        exit('Invalid CSRF token.');
+    }
     $name = $_POST['name'];
     $specialization = $_POST['specialization'];
     $phone = $_POST['phone'];
@@ -68,6 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endif; ?>
 
             <form method="POST" action="edit_doctor.php?id=<?= $id ?>" class="space-y-4">
+                <?= csrf_field() ?>
                 <div>
                     <label class="block text-gray-700 text-sm font-bold mb-2">Name</label>
                     <input type="text" name="name" value="<?= htmlspecialchars($doctor['name']) ?>" required class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">

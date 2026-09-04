@@ -1,11 +1,11 @@
 <?php
-require_once '../includes/security.php';
+require_once __DIR__ . '/../includes/security.php';
 init_secure_session();
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Receptionist') {
     header("Location: ../login.php");
     exit();
 }
-require_once '../config/db.php';
+require_once __DIR__ . '/../config/db.php';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'])) {
     if (!verify_csrf_token($_POST['csrf_token'] ?? null)) {
         $error = "Invalid security token. Please try again.";

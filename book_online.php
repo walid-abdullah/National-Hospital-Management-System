@@ -1,5 +1,7 @@
 <?php
-require_once 'config/db.php';
+require_once __DIR__ . '/includes/security.php';
+init_secure_session();
+require_once __DIR__ . '/config/db.php';
 
 // Fetch hospitals
 $stmt = $conn->query("SELECT id, name, location FROM hospitals");
@@ -13,6 +15,9 @@ $success_msg = '';
 $error_msg = '';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? null)) {
+        $error_msg = 'Invalid security token. Please try again.';
+    } else {
     $hospital_id = $_POST['hospital_id'];
     $appointment_type = $_POST['appointment_type'];
     $doctor_id = $_POST['doctor_id'];
@@ -76,6 +81,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $conn->rollBack();
         $error_msg = "Error booking appointment: " . $e->getMessage();
     }
+    }
 }
 
 require_once 'includes/header_public.php';
@@ -109,6 +115,7 @@ $pre_hospital_id = isset($_GET['hospital_id']) ? $_GET['hospital_id'] : '';
 
             <?php if(!$success_msg): ?>
             <form action="book_online.php" method="POST" class="space-y-6">
+                <?php echo csrf_field(); ?>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Personal Info -->

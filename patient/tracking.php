@@ -1,10 +1,11 @@
 <?php
-session_start();
+require_once __DIR__ . '/../includes/security.php';
+init_secure_session();
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Patient') {
     header("Location: ../login.php");
     exit();
 }
-require_once '../config/db.php';
+require_once __DIR__ . '/../config/db.php';
 
 $user_id = $_SESSION['user_id'];
 

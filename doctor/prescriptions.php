@@ -1,10 +1,11 @@
 <?php
-session_start();
+require_once __DIR__ . '/../includes/security.php';
+init_secure_session();
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Doctor') {
     header("Location: ../login.php");
     exit();
 }
-require_once '../config/db.php';
+require_once __DIR__ . '/../config/db.php';
 
 $user_id = $_SESSION['user_id'];
 $stmt = $conn->prepare("SELECT id as doctor_id FROM doctors WHERE user_id = :user_id");

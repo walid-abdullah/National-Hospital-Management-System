@@ -1,5 +1,6 @@
 <?php
-session_start();
+require_once __DIR__ . '/../includes/security.php';
+init_secure_session();
 require_once '../config/db.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
@@ -11,6 +12,10 @@ $current_month = date('F Y');
 
 // Handle Salary Payment
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['pay_salary'])) {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? null)) {
+        http_response_code(403);
+        exit('Invalid CSRF token.');
+    }
     $user_id = $_POST['user_id'];
     $base = $_POST['base_salary'];
     $bonus = $_POST['bonus'];
@@ -296,6 +301,7 @@ $payrolls = $pay_stmt->fetchAll(PDO::FETCH_ASSOC);
             <p class="text-gray-500 dark:text-gray-400 mb-6 text-sm">Processing salary for <span id="modalStaffName" class="font-bold text-gray-900 dark:text-white"></span> for <span class="font-semibold text-indigo-600 dark:text-indigo-400"><?= $current_month ?></span>.</p>
             
             <form method="POST" id="payrollForm">
+                <?= csrf_field() ?>
                 <input type="hidden" name="user_id" id="modalUserId">
                 
                 <div class="space-y-5">

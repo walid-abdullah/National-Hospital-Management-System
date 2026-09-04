@@ -1,5 +1,6 @@
 <?php
-session_start();
+require_once __DIR__ . '/../includes/security.php';
+init_secure_session();
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
     header("Location: ../login.php");
     exit();
@@ -11,6 +12,10 @@ $selected_hospital = $_GET['hospital_id'] ?? ($hospitals[0]['id'] ?? 0);
 
 // Handle Dispatch Action
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['dispatch_id'])) {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? null)) {
+        http_response_code(403);
+        exit('Invalid CSRF token.');
+    }
     $dispatch_id = $_POST['dispatch_id'];
     $stmt = $conn->prepare("UPDATE ambulances SET status = 'On-Trip' WHERE id = ? AND hospital_id = ?");
     $stmt->execute([$dispatch_id, $selected_hospital]);
@@ -18,6 +23,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['dispatch_id'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['return_id'])) {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? null)) {
+        http_response_code(403);
+        exit('Invalid CSRF token.');
+    }
     $return_id = $_POST['return_id'];
     $stmt = $conn->prepare("UPDATE ambulances SET status = 'Available' WHERE id = ? AND hospital_id = ?");
     $stmt->execute([$return_id, $selected_hospital]);
@@ -98,6 +107,7 @@ $ambulances = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     </div>
                     
                     <form method="POST">
+                        <?= csrf_field() ?>
                         <input type="hidden" name="<?php echo $actionName; ?>" value="<?php echo $amb['id']; ?>">
                         <button type="submit" class="w-full py-3 rounded-xl font-bold shadow-md transition-transform transform hover:-translate-y-0.5 <?php echo $btnColor; ?>">
                             <?php echo $isAvailable ? '🚀 ' : '✅ '; ?> <?php echo $btnTxt; ?>

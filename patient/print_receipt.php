@@ -1,5 +1,5 @@
 <?php
-require_once '../includes/security.php';
+require_once __DIR__ . '/../includes/security.php';
 init_secure_session();
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['Patient', 'Admin'], true)) {
@@ -7,7 +7,7 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['Patient
     exit();
 }
 
-require_once '../config/db.php';
+require_once __DIR__ . '/../config/db.php';
 
 $bill_id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 if (!$bill_id) {

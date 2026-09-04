@@ -1,5 +1,6 @@
 <?php
-session_start();
+require_once __DIR__ . '/../includes/security.php';
+init_secure_session();
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
     header("Location: ../login.php");
     exit();
@@ -23,6 +24,10 @@ if (!$record) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? null)) {
+        http_response_code(403);
+        exit('Invalid CSRF token.');
+    }
     $diagnosis = $_POST['diagnosis'];
     $treatment = $_POST['treatment'];
     $visit_date = $_POST['visit_date'];
@@ -74,6 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php endif; ?>
 
                 <form method="POST" action="edit_medical_record.php?id=<?= $id ?>" class="space-y-5">
+                    <?= csrf_field() ?>
                     <div>
                         <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Visit Date</label>
                         <input type="date" name="visit_date" value="<?= htmlspecialchars($record['visit_date']) ?>" required class="w-full px-3 py-2 border rounded-lg focus:ring focus:ring-blue-200 dark:bg-slate-900 dark:border-slate-700 dark:text-white">

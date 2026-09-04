@@ -1,7 +1,7 @@
 <?php
-require_once 'includes/security.php';
+require_once __DIR__ . '/includes/security.php';
 init_secure_session();
-require_once 'config/db.php';
+require_once __DIR__ . '/config/db.php';
 
 $success_msg = '';
 $error_msg = '';

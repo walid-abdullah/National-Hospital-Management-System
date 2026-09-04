@@ -1,5 +1,6 @@
 <?php
-session_start();
+require_once __DIR__ . '/../includes/security.php';
+init_secure_session();
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
     header("Location: ../login.php");
     exit();
@@ -75,6 +76,7 @@ try {
                 </div>
             <?php endif; ?>
             <form action="add_lab_test_action.php" method="POST" class="space-y-6">
+                <?= csrf_field() ?>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Select Patient</label>

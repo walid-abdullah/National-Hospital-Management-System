@@ -1,11 +1,16 @@
 <?php
-session_start();
+require_once __DIR__ . '/../includes/security.php';
+init_secure_session();
 require_once '../config/db.php';
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
     header("Location: ../login.php");
     exit();
 }
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? null)) {
+        http_response_code(403);
+        exit('Invalid CSRF token.');
+    }
     $patient_id = intval($_POST['patient_id']);
     $test_name = trim($_POST['test_name']);
     $test_date = trim($_POST['test_date']);

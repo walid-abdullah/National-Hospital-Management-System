@@ -1,5 +1,6 @@
 <?php
-session_start();
+require_once __DIR__ . '/../includes/security.php';
+init_secure_session();
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
     header("Location: ../login.php");
     exit();
@@ -17,6 +18,10 @@ $pending_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Handle approval/rejection
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? null)) {
+        http_response_code(403);
+        exit('Invalid CSRF token.');
+    }
     if (isset($_POST['action']) && isset($_POST['user_id'])) {
         $user_id = $_POST['user_id'];
         $action = $_POST['action']; // 'Approve' or 'Reject'
@@ -129,6 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                     </td>
                                     <td class="p-4 text-right">
                                         <form method="POST" class="inline-block">
+                                            <?= csrf_field() ?>
                                             <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
                                             <input type="hidden" name="username" value="<?= htmlspecialchars($user['username']) ?>">
                                             <button type="submit" name="action" value="Approve" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded shadow text-sm font-medium transition mr-2">Approve</button>
