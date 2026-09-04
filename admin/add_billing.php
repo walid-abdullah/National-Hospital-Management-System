@@ -1,5 +1,6 @@
 <?php
-session_start();
+require_once '../includes/security.php';
+init_secure_session();
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
     header("Location: ../login.php");
     exit();
@@ -7,7 +8,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
 require_once '../config/db.php';
 
 try {
-    $stmtP = $conn->prepare("SELECT patient_id, name FROM patients ORDER BY name ASC");
+    $stmtP = $conn->prepare("SELECT id AS patient_id, name FROM patients ORDER BY name ASC");
     $stmtP->execute();
     $patients = $stmtP->fetchAll(PDO::FETCH_ASSOC);
 } catch(PDOException $e) {
@@ -75,6 +76,7 @@ try {
                 </div>
             <?php endif; ?>
             <form action="add_billing_action.php" method="POST" class="space-y-6">
+                <?php echo csrf_field(); ?>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Select Patient</label>
@@ -86,12 +88,21 @@ try {
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Amount ($)</label>
-                        <input type="number" step="0.01" name="amount" required class="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:bg-slate-700 dark:text-white dark:border-slate-600">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Total Amount</label>
+                        <input type="number" step="0.01" name="total_amount" required class="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:bg-slate-700 dark:text-white dark:border-slate-600">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Payment Method</label>
+                        <select name="payment_method" class="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:bg-slate-700 dark:text-white dark:border-slate-600">
+                            <option value="">Not specified</option>
+                            <option value="Cash">Cash</option>
+                            <option value="Card">Card</option>
+                            <option value="Online">Online</option>
+                        </select>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Payment Status</label>
-                        <select name="payment_status" required class="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:bg-slate-700 dark:text-white dark:border-slate-600">
+                        <select name="status" required class="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:bg-slate-700 dark:text-white dark:border-slate-600">
                             <option value="Unpaid" selected>Unpaid</option>
                             <option value="Paid">Paid</option>
                         </select>

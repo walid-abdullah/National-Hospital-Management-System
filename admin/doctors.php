@@ -1,5 +1,6 @@
 <?php
-session_start();
+require_once '../includes/security.php';
+init_secure_session();
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
     header("Location: ../login.php");
     exit();
@@ -7,8 +8,13 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
 require_once '../config/db.php';
 
 // Delete logic
-if (isset($_GET['delete_id'])) {
-    $del_id = intval($_GET['delete_id']);
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? null)) {
+        $_SESSION['error'] = "Invalid security token.";
+        header("Location: doctors.php");
+        exit();
+    }
+    $del_id = (int) $_POST['delete_id'];
     try {
         // Find user_id before deleting doctor
         $stmt_u = $conn->prepare("SELECT user_id FROM doctors WHERE id = ?");
@@ -31,7 +37,7 @@ try {
     $query = "SELECT d.id, d.name, d.specialization, d.phone, h.name AS hospital_name, dept.name AS department_name 
               FROM doctors d 
               JOIN hospitals h ON d.hospital_id = h.id 
-              JOIN departments dept ON d.department_id = dept.id 
+              LEFT JOIN departments dept ON d.department_id = dept.id
               ORDER BY h.name, d.name";
     $stmt = $conn->prepare($query);
     $stmt->execute();
@@ -137,7 +143,11 @@ try {
                             <td class="p-4 text-sm text-gray-500 dark:text-gray-400"><?php echo htmlspecialchars($doctor['phone']); ?></td>
                             <td class="p-4 text-center space-x-2">
                                 <a href="edit_doctor.php?id=<?php echo $doctor['id']; ?>" class="text-blue-500 hover:text-blue-700 font-medium text-sm">Edit</a>
-                                <a href="?delete_id=<?php echo $doctor['id']; ?>" onclick="return confirm('Are you sure you want to delete this doctor?');" class="text-red-500 hover:text-red-700 font-medium text-sm">Delete</a>
+                                <form method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this doctor?');">
+                                    <?php echo csrf_field(); ?>
+                                    <input type="hidden" name="delete_id" value="<?php echo (int) $doctor['id']; ?>">
+                                    <button type="submit" class="text-red-500 hover:text-red-700 font-medium text-sm">Delete</button>
+                                </form>
                             </td>
                         </tr>
                         <?php endforeach; ?>

@@ -1,4 +1,6 @@
 <?php
+require_once 'includes/security.php';
+init_secure_session();
 require_once 'config/db.php';
 
 $success_msg = '';
@@ -6,6 +8,9 @@ $error_msg = '';
 $pre_selected_test = isset($_GET['test_name']) ? $_GET['test_name'] : '';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? null)) {
+        $error_msg = 'Invalid security token. Please try again.';
+    } else {
     $name = $_POST['name'];
     $phone = $_POST['phone'];
     $password = $_POST['password'];
@@ -18,35 +23,49 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     try {
         $conn->beginTransaction();
 
+        $service = $conn->prepare("SELECT id, hospital_id FROM lab_services WHERE service_name = :service_name OR service_name LIKE :service_search LIMIT 1");
+        $service->execute([
+            ':service_name' => $test_name,
+            ':service_search' => $test_name . '%',
+        ]);
+        $service_data = $service->fetch(PDO::FETCH_ASSOC);
+        if (!$service_data) {
+            throw new Exception("The selected laboratory service is unavailable.");
+        }
+        $hospital_id = (int) $service_data['hospital_id'];
+        $service_id = (int) $service_data['id'];
+
         // 1. Check if user already exists
-        $stmt = $conn->prepare("SELECT user_id FROM users WHERE username = :username LIMIT 1");
+        $stmt = $conn->prepare("SELECT id FROM users WHERE username = :username LIMIT 1");
         $stmt->bindParam(':username', $phone);
         $stmt->execute();
         $existing_user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($existing_user) {
-            $user_id = $existing_user['user_id'];
-            $stmt = $conn->prepare("SELECT patient_id FROM patients WHERE user_id = :uid LIMIT 1");
+            $user_id = $existing_user['id'];
+            $stmt = $conn->prepare("SELECT id FROM patients WHERE user_id = :uid LIMIT 1");
             $stmt->bindParam(':uid', $user_id);
             $stmt->execute();
             $patient = $stmt->fetch(PDO::FETCH_ASSOC);
             if($patient) {
-                $patient_id = $patient['patient_id'];
+                $patient_id = $patient['id'];
             } else {
                 throw new Exception("Account exists but patient record is missing.");
             }
         } else {
             // 2. Create User
-            $hashed_password = md5($password);
-            $stmt = $conn->prepare("INSERT INTO users (username, password, role) VALUES (:username, :password, 'Patient')");
+            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+            $stmt = $conn->prepare("INSERT INTO users (hospital_id, username, password, role, status) VALUES (:hospital_id, :username, :password, 'Patient', 'Approved')");
+            $stmt->bindParam(':hospital_id', $hospital_id, PDO::PARAM_INT);
             $stmt->bindParam(':username', $phone);
             $stmt->bindParam(':password', $hashed_password);
             $stmt->execute();
             $user_id = $conn->lastInsertId();
 
             // 3. Create Patient
-            $stmt = $conn->prepare("INSERT INTO patients (user_id, name, age, gender, phone, address) VALUES (:uid, :name, :age, :gender, :phone, 'Self Registered via Web')");
+            $stmt = $conn->prepare("INSERT INTO patients (user_id, hospital_id, name, age, gender, phone, address) VALUES (:uid, :hospital_id, :name, :age, :gender, :phone, 'Self Registered via Web')");
             $stmt->bindParam(':uid', $user_id);
+            $stmt->bindParam(':hospital_id', $hospital_id, PDO::PARAM_INT);
             $stmt->bindParam(':name', $name);
             $stmt->bindParam(':age', $age);
             $stmt->bindParam(':gender', $gender);
@@ -55,21 +74,27 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $patient_id = $conn->lastInsertId();
         }
 
-        // 4. Create Lab Test Booking (Setting test_result as 'Pending' or collection details)
-        $initial_status = "Pending ($collection_type)";
-        $stmt = $conn->prepare("INSERT INTO laboratory_tests (patient_id, test_name, test_result, test_date) VALUES (:pid, :test_name, :result, :date)");
-        $stmt->bindParam(':pid', $patient_id);
-        $stmt->bindParam(':test_name', $test_name);
-        $stmt->bindParam(':result', $initial_status);
-        $stmt->bindParam(':date', $test_date);
-        $stmt->execute();
+        // 4. Create Lab Test Booking
+        $stmt = $conn->prepare(
+            "INSERT INTO laboratory_tests (hospital_id, patient_id, service_id, status, test_date)
+             VALUES (:hospital_id, :patient_id, :service_id, 'Pending', :test_date)"
+        );
+        $stmt->execute([
+            ':hospital_id' => $hospital_id,
+            ':patient_id' => $patient_id,
+            ':service_id' => $service_id,
+            ':test_date' => $test_date,
+        ]);
 
         $conn->commit();
         $success_msg = "Laboratory Test Request Submitted Successfully! You can log into the portal to check when your reports are ready.";
         
     } catch (Exception $e) {
-        $conn->rollBack();
+        if ($conn->inTransaction()) {
+            $conn->rollBack();
+        }
         $error_msg = "Error booking lab test: " . $e->getMessage();
+    }
     }
 }
 
@@ -106,6 +131,7 @@ require_once 'includes/header_public.php';
 
             <?php if(!$success_msg): ?>
             <form action="book_lab.php" method="POST" class="space-y-6">
+                <?php echo csrf_field(); ?>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="space-y-6">
                         <h3 class="text-lg font-bold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">1. Personal Details</h3>

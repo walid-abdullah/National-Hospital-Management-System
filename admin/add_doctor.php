@@ -1,5 +1,6 @@
 <?php
-session_start();
+require_once '../includes/security.php';
+init_secure_session();
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
     header("Location: ../login.php");
     exit();
@@ -70,12 +71,13 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
             <?php endif; ?>
 
             <form action="add_doctor_action.php" method="POST" class="space-y-6">
+                <?php echo csrf_field(); ?>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Full Name -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Doctor Name</label>
-                        <input type="text" name="doctor_name" required class="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" placeholder="e.g. Dr. John Doe">
+                        <input type="text" name="name" required class="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" placeholder="e.g. Dr. John Doe">
                     </div>
                     
                     <!-- Specialization -->
@@ -90,10 +92,18 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
                         <input type="text" name="phone" required class="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
                     </div>
 
-                    <!-- Schedule -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Schedule</label>
-                        <input type="text" name="schedule" required class="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" placeholder="e.g. Mon-Fri 10AM-2PM">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Initial Password</label>
+                        <input type="password" name="password" minlength="8" required class="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Consultation Fee</label>
+                        <input type="number" name="consultation_fee" min="0" step="0.01" value="1000" required class="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Base Salary</label>
+                        <input type="number" name="base_salary" min="0" step="0.01" value="50000" required class="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
                     </div>
                 </div>
 

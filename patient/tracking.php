@@ -31,14 +31,14 @@ $events[] = [
 ];
 
 // 2. Appointments
-$stmt = $conn->prepare("SELECT appointment_date, status, notes FROM appointments WHERE patient_id = ?");
+$stmt = $conn->prepare("SELECT appointment_date, status FROM appointments WHERE patient_id = ?");
 $stmt->execute([$patient_id]);
 while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
     $events[] = [
         'date' => $row['appointment_date'],
         'type' => 'Appointment',
         'title' => 'Doctor Appointment',
-        'description' => "Status: {$row['status']}. Notes: " . ($row['notes'] ?? 'None'),
+        'description' => "Status: {$row['status']}.",
         'icon' => '🩺',
         'color' => 'bg-teal-500'
     ];

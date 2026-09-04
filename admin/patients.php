@@ -1,5 +1,6 @@
 <?php
-session_start();
+require_once '../includes/security.php';
+init_secure_session();
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
     header("Location: ../login.php");
     exit();
@@ -11,8 +12,13 @@ $search = trim($_GET['search'] ?? '');
 $like = '%' . $search . '%';
 
 // Delete logic
-if (isset($_GET['delete_id'])) {
-    $del_id = intval($_GET['delete_id']);
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? null)) {
+        $_SESSION['error'] = "Invalid security token.";
+        header("Location: patients.php");
+        exit();
+    }
+    $del_id = (int) $_POST['delete_id'];
     try {
         // Find user_id before deleting patient
         $stmt_u = $conn->prepare("SELECT user_id FROM patients WHERE id = ?");
@@ -167,7 +173,11 @@ try {
                             <td class="p-4 text-sm text-gray-500 dark:text-gray-400"><?php echo htmlspecialchars($patient['phone']); ?></td>
                             <td class="p-4 text-center space-x-2">
                                 <a href="edit_patient.php?id=<?php echo $patient['id']; ?>" class="text-blue-500 hover:text-blue-700 font-medium text-sm">Edit</a>
-                                <a href="?delete_id=<?php echo $patient['id']; ?>" onclick="return confirm('Are you sure you want to delete this patient?');" class="text-red-500 hover:text-red-700 font-medium text-sm">Delete</a>
+                                <form method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this patient?');">
+                                    <?php echo csrf_field(); ?>
+                                    <input type="hidden" name="delete_id" value="<?php echo (int) $patient['id']; ?>">
+                                    <button type="submit" class="text-red-500 hover:text-red-700 font-medium text-sm">Delete</button>
+                                </form>
                             </td>
                         </tr>
                         <?php endforeach; ?>
