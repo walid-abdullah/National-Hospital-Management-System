@@ -21,13 +21,15 @@ $stmt_pat->execute();
 $patients = $stmt_pat->fetchAll(PDO::FETCH_ASSOC);
 
 $selected_patient_id = '';
+$selected_appointment_id = '';
 if (isset($_GET['apt_id'])) {
     $apt_id = intval($_GET['apt_id']);
-    $stmt_apt = $conn->prepare("SELECT patient_id FROM appointments WHERE id = ?");
-    $stmt_apt->execute([$apt_id]);
+    $stmt_apt = $conn->prepare("SELECT id, patient_id FROM appointments WHERE id = ? AND doctor_id = ?");
+    $stmt_apt->execute([$apt_id, $doctor_id]);
     $apt_data = $stmt_apt->fetch(PDO::FETCH_ASSOC);
     if ($apt_data) {
         $selected_patient_id = $apt_data['patient_id'];
+        $selected_appointment_id = $apt_data['id'];
     }
 }
 
@@ -37,11 +39,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $msg = "<div class='bg-red-100 text-red-700 p-4 rounded mb-4'>Invalid security token. Please try again.</div>";
     } else {
     $patient_id = $_POST['patient_id'];
+    $appointment_id = filter_input(INPUT_POST, 'appointment_id', FILTER_VALIDATE_INT) ?: null;
     $medicine = trim($_POST['medicine'] ?? '');
     $dosage = trim($_POST['dosage'] ?? '');
-    $tests = trim($_POST['tests'] ?? '');
 
-    if (!empty($patient_id) && (!empty($medicine) || !empty($tests))) {
+    if (!empty($patient_id) && !empty($medicine)) {
         try {
             $authorized = $conn->prepare(
                 "SELECT 1 FROM appointments WHERE patient_id = :patient_id AND doctor_id = :doctor_id LIMIT 1"
@@ -55,8 +57,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             if (!empty($medicine)) {
                 $medicines_json = json_encode([['name' => $medicine, 'dosage' => $dosage]]);
             }
-            $insert = $conn->prepare("INSERT INTO prescriptions (patient_id, doctor_id, medicines, tests) VALUES (?, ?, ?, ?)");
-            $insert->execute([$patient_id, $doctor_id, $medicines_json, empty($tests) ? null : $tests]);
+            if ($appointment_id !== null) {
+                $appointment = $conn->prepare(
+                    "SELECT 1 FROM appointments WHERE id = :appointment_id AND patient_id = :patient_id AND doctor_id = :doctor_id"
+                );
+                $appointment->execute([
+                    ':appointment_id' => $appointment_id,
+                    ':patient_id' => $patient_id,
+                    ':doctor_id' => $doctor_id,
+                ]);
+                if (!$appointment->fetchColumn()) {
+                    throw new RuntimeException('The selected appointment is not valid for this patient.');
+                }
+            }
+            $insert = $conn->prepare("INSERT INTO prescriptions (patient_id, doctor_id, appointment_id, medicines) VALUES (?, ?, ?, ?)");
+            $insert->execute([$patient_id, $doctor_id, $appointment_id, $medicines_json]);
             $msg = "<div class='bg-green-100 text-green-700 p-4 rounded mb-4'>Prescription issued successfully!</div>";
         } catch(PDOException $e) {
             $msg = "<div class='bg-red-100 text-red-700 p-4 rounded mb-4'>Unable to issue prescription.</div>";
@@ -64,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $msg = "<div class='bg-red-100 text-red-700 p-4 rounded mb-4'>" . e($e->getMessage()) . "</div>";
         }
     } else {
-        $msg = "<div class='bg-red-100 text-red-700 p-4 rounded mb-4'>Please prescribe at least one Medicine or Lab Test.</div>";
+        $msg = "<div class='bg-red-100 text-red-700 p-4 rounded mb-4'>Please prescribe at least one medicine.</div>";
     }
     }
 }
@@ -113,6 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             <option value="<?php echo $pat['patient_id']; ?>" <?php echo ($selected_patient_id == $pat['patient_id']) ? 'selected' : ''; ?>><?php echo htmlspecialchars($pat['name']); ?></option>
                         <?php endforeach; ?>
                     </select>
+                    <input type="hidden" name="appointment_id" value="<?php echo (int) $selected_appointment_id; ?>">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Medicine (Optional)</label>
@@ -121,10 +137,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Dosage Instructions</label>
                     <input type="text" name="dosage" placeholder="e.g., 1-1-1 (After meal) for 7 days" class="w-full px-4 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-white">
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Lab Tests (Optional)</label>
-                    <textarea name="tests" rows="2" placeholder="e.g., Complete Blood Count (CBC), Chest X-Ray" class="w-full px-4 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-white"></textarea>
                 </div>
                 <div class="pt-4">
                     <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow">Submit Prescription</button>

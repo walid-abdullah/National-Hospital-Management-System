@@ -47,14 +47,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             ':bill_date' => $bill_date,
             ':details' => $details,
         ]);
-        
-        if($stmt->execute()) {
-            $_SESSION['success'] = "Bill generated successfully!";
-            header("Location: billing.php");
-        } else {
-            $_SESSION['error'] = "Failed to generate bill.";
-            header("Location: add_billing.php");
-        }
+        $_SESSION['success'] = "Bill generated successfully!";
+        header("Location: billing.php");
+        exit();
     } catch (PDOException | RuntimeException | JsonException $e) {
         $_SESSION['error'] = "Database error: " . $e->getMessage();
         header("Location: add_billing.php");

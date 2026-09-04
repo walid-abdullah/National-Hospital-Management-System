@@ -15,10 +15,11 @@ $patient = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if ($patient) {
     $patient_id = $patient['patient_id'];
-    $query = "SELECT p.id as prescription_id, d.name as doctor_name, p.medicines, p.date_issued 
+    $query = "SELECT p.id AS prescription_id, pat.name AS patient_name, d.name AS doctor_name, p.medicines, p.date_issued
               FROM prescriptions p 
-              JOIN doctors d ON p.doctor_id = d.id 
-              WHERE p.patient_id = :patient_id 
+              JOIN patients pat ON p.patient_id = pat.id
+              JOIN doctors d ON p.doctor_id = d.id
+              WHERE p.patient_id = :patient_id
               ORDER BY p.date_issued DESC";
     $stmt2 = $conn->prepare($query);
     $stmt2->bindParam(':patient_id', $patient_id);
@@ -99,10 +100,6 @@ if ($patient) {
                                         echo "<div class='mb-3'>" . nl2br(htmlspecialchars($p['medicines'])) . "</div>";
                                     }
 
-                                    if(!empty($p['tests'])) {
-                                        echo "<p class='font-semibold text-purple-600 dark:text-purple-400 mb-1'>Prescribed Lab Tests:</p>";
-                                        echo "<div class='text-gray-600 dark:text-gray-400 mb-3 whitespace-pre-wrap'>" . htmlspecialchars($p['tests']) . "</div>";
-                                    }
                                 ?>
                                 <a href="print_prescription.php?id=<?php echo $p['prescription_id']; ?>" target="_blank" class="inline-flex items-center text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 px-3 py-1.5 rounded-lg transition-colors mt-2">
                                     <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>

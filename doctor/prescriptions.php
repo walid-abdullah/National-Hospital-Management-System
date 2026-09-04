@@ -15,13 +15,11 @@ $doctor = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if ($doctor) {
     $doctor_id = $doctor['doctor_id'];
-    $query = "SELECT p.prescription_id, pat.name AS patient_name, p.medicine, p.dosage, app.appointment_date 
+    $query = "SELECT p.id AS prescription_id, pat.name AS patient_name, p.medicines, p.date_issued
               FROM prescriptions p 
-              JOIN patients pat ON p.patient_id = pat.patient_id 
-              LEFT JOIN appointments app ON app.patient_id = pat.id AND app.doctor_id = p.doctor_id
-              WHERE p.doctor_id = :doctor_id 
-              GROUP BY p.prescription_id
-              ORDER BY p.prescription_id DESC";
+              JOIN patients pat ON p.patient_id = pat.id
+              WHERE p.doctor_id = :doctor_id
+              ORDER BY p.date_issued DESC";
     $stmt2 = $conn->prepare($query);
     $stmt2->bindParam(':doctor_id', $doctor_id);
     $stmt2->execute();
@@ -85,8 +83,7 @@ if ($doctor) {
                         <tr class="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 uppercase text-xs">
                             <th class="p-4 border-b">ID</th>
                             <th class="p-4 border-b">Patient</th>
-                            <th class="p-4 border-b">Medicine</th>
-                            <th class="p-4 border-b">Dosage</th>
+                            <th class="p-4 border-b">Medicines & Dosage</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -95,12 +92,30 @@ if ($doctor) {
                             <tr class="hover:bg-blue-50 dark:hover:bg-slate-700 transition">
                                 <td class="p-4 text-sm">#<?php echo $p['prescription_id']; ?></td>
                                 <td class="p-4 font-semibold text-blue-700 dark:text-blue-400"><?php echo htmlspecialchars($p['patient_name']); ?></td>
-                                <td class="p-4 text-sm font-medium"><?php echo htmlspecialchars($p['medicine']); ?></td>
-                                <td class="p-4 text-sm text-gray-600 dark:text-gray-400"><?php echo htmlspecialchars($p['dosage']); ?></td>
+                                <td class="p-4 text-sm text-gray-800 dark:text-gray-200">
+                                    <?php
+                                    $medicines = json_decode($p['medicines'], true);
+                                    if (is_array($medicines) && !empty($medicines)) {
+                                        echo '<ul class="list-disc pl-5 space-y-1">';
+                                        foreach ($medicines as $medicine) {
+                                            $name = e($medicine['name'] ?? $medicine['medicine'] ?? 'Unknown');
+                                            $dosage = e($medicine['dosage'] ?? '');
+                                            echo '<li><span class="font-semibold">' . $name . '</span>';
+                                            if ($dosage !== '') {
+                                                echo ' - <span class="text-gray-600 dark:text-gray-400">' . $dosage . '</span>';
+                                            }
+                                            echo '</li>';
+                                        }
+                                        echo '</ul>';
+                                    } else {
+                                        echo e((string) $p['medicines']);
+                                    }
+                                    ?>
+                                </td>
                             </tr>
                             <?php endforeach; ?>
                         <?php else: ?>
-                            <tr><td colspan="4" class="p-6 text-center text-gray-500">No prescriptions issued yet.</td></tr>
+                            <tr><td colspan="3" class="p-6 text-center text-gray-500">No prescriptions issued yet.</td></tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
