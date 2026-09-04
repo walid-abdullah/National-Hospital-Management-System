@@ -1,5 +1,6 @@
 <?php
-session_start();
+require_once 'includes/security.php';
+init_secure_session();
 // If already logged in, redirect to dashboard
 if (isset($_SESSION['user_id'])) {
     if ($_SESSION['role'] === 'Admin') header("Location: admin/dashboard.php");

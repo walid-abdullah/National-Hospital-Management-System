@@ -1,5 +1,6 @@
 <?php
-session_start();
+require_once '../includes/security.php';
+init_secure_session();
 if (!isset($_SESSION['user_id'])) {
     header("Location: ../login.php");
     exit();
@@ -13,8 +14,9 @@ $stmt = $conn->prepare("
     JOIN patients p ON b.patient_id = p.id
     JOIN hospitals h ON b.hospital_id = h.id
     WHERE b.id = :id
+      AND ( :role = 'Admin' OR p.user_id = :user_id )
 ");
-$stmt->execute([':id' => $bill_id]);
+$stmt->execute([':id' => $bill_id, ':role' => $_SESSION['role'] ?? '', ':user_id' => $_SESSION['user_id']]);
 $bill = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$bill) {

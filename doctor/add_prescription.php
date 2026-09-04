@@ -1,5 +1,6 @@
 <?php
-session_start();
+require_once '../includes/security.php';
+init_secure_session();
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Doctor') {
     header("Location: ../login.php");
     exit();
@@ -32,6 +33,9 @@ if (isset($_GET['apt_id'])) {
 
 $msg = '';
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? null)) {
+        $msg = "<div class='bg-red-100 text-red-700 p-4 rounded mb-4'>Invalid security token. Please try again.</div>";
+    } else {
     $patient_id = $_POST['patient_id'];
     $medicine = trim($_POST['medicine'] ?? '');
     $dosage = trim($_POST['dosage'] ?? '');
@@ -39,6 +43,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     if (!empty($patient_id) && (!empty($medicine) || !empty($tests))) {
         try {
+            $authorized = $conn->prepare(
+                "SELECT 1 FROM appointments WHERE patient_id = :patient_id AND doctor_id = :doctor_id LIMIT 1"
+            );
+            $authorized->execute([':patient_id' => $patient_id, ':doctor_id' => $doctor_id]);
+            if (!$authorized->fetchColumn()) {
+                throw new RuntimeException('You are not authorized to prescribe for this patient.');
+            }
+
             $medicines_json = null;
             if (!empty($medicine)) {
                 $medicines_json = json_encode([['name' => $medicine, 'dosage' => $dosage]]);
@@ -47,10 +59,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $insert->execute([$patient_id, $doctor_id, $medicines_json, empty($tests) ? null : $tests]);
             $msg = "<div class='bg-green-100 text-green-700 p-4 rounded mb-4'>Prescription issued successfully!</div>";
         } catch(PDOException $e) {
-            $msg = "<div class='bg-red-100 text-red-700 p-4 rounded mb-4'>Error: " . $e->getMessage() . "</div>";
+            $msg = "<div class='bg-red-100 text-red-700 p-4 rounded mb-4'>Unable to issue prescription.</div>";
+        } catch (RuntimeException $e) {
+            $msg = "<div class='bg-red-100 text-red-700 p-4 rounded mb-4'>" . e($e->getMessage()) . "</div>";
         }
     } else {
         $msg = "<div class='bg-red-100 text-red-700 p-4 rounded mb-4'>Please prescribe at least one Medicine or Lab Test.</div>";
+    }
     }
 }
 ?>
@@ -89,6 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <h2 class="text-2xl font-bold mb-6 text-gray-800 dark:text-gray-100">Write New Prescription</h2>
             <?php echo $msg; ?>
             <form action="" method="POST" class="space-y-6">
+                <?php echo csrf_field(); ?>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Select Patient</label>
                     <select name="patient_id" required class="w-full px-4 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-white">

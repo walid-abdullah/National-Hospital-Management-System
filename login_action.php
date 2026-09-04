@@ -1,5 +1,6 @@
 <?php
-session_start();
+require_once 'includes/security.php';
+init_secure_session();
 require_once 'config/db.php';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
@@ -27,6 +28,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     header("Location: login.php");
                     exit();
                 }
+
+                session_regenerate_id(true);
 
                 // Set session variables
                 $_SESSION['user_id'] = $user['id'];

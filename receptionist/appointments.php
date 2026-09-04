@@ -1,22 +1,28 @@
 <?php
-session_start();
+require_once '../includes/security.php';
+init_secure_session();
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Receptionist') {
     header("Location: ../login.php");
     exit();
 }
 require_once '../config/db.php';
-if (isset($_GET['action']) && isset($_GET['id'])) {
-    $apt_id = intval($_GET['id']);
-    $action = $_GET['action'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'])) {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? null)) {
+        $error = "Invalid security token. Please try again.";
+    }
+    $apt_id = intval($_POST['id']);
+    $action = $_POST['action'];
     $new_status = ($action === 'approve') ? 'Completed' : 'Cancelled';
-    try {
+    if (!isset($error) && in_array($action, ['approve', 'cancel'], true)) {
+      try {
         $update = $conn->prepare("UPDATE appointments SET status = ? WHERE id = ?");
         $update->execute([$new_status, $apt_id]);
         $_SESSION['success'] = "Appointment status updated to " . $new_status;
         header("Location: appointments.php");
         exit();
-    } catch(PDOException $e) {
+      } catch(PDOException $e) {
         $error = "Error updating status.";
+      }
     }
 }
 
@@ -127,8 +133,18 @@ try {
                             </td>
                             <td class="p-4 text-center space-x-2">
                                 <?php if($apt['status'] == 'Pending'): ?>
-                                    <a href="?action=approve&id=<?php echo $apt['appointment_id']; ?>" class="text-green-600 hover:text-green-800 font-bold text-sm bg-green-50 px-2 py-1 rounded border border-green-200">Approve</a>
-                                    <a href="?action=cancel&id=<?php echo $apt['appointment_id']; ?>" onclick="return confirm('Cancel this appointment?');" class="text-red-600 hover:text-red-800 font-bold text-sm bg-red-50 px-2 py-1 rounded border border-red-200">Cancel</a>
+                                    <form method="POST" class="inline">
+                                        <?php echo csrf_field(); ?>
+                                        <input type="hidden" name="id" value="<?php echo (int) $apt['appointment_id']; ?>">
+                                        <input type="hidden" name="action" value="approve">
+                                        <button type="submit" class="text-green-600 hover:text-green-800 font-bold text-sm bg-green-50 px-2 py-1 rounded border border-green-200">Approve</button>
+                                    </form>
+                                    <form method="POST" class="inline" onsubmit="return confirm('Cancel this appointment?');">
+                                        <?php echo csrf_field(); ?>
+                                        <input type="hidden" name="id" value="<?php echo (int) $apt['appointment_id']; ?>">
+                                        <input type="hidden" name="action" value="cancel">
+                                        <button type="submit" class="text-red-600 hover:text-red-800 font-bold text-sm bg-red-50 px-2 py-1 rounded border border-red-200">Cancel</button>
+                                    </form>
                                 <?php else: ?>
                                     <span class="text-gray-400 text-xs italic">Done</span>
                                 <?php endif; ?>

@@ -1,5 +1,6 @@
 <?php
-session_start();
+require_once '../includes/security.php';
+init_secure_session();
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Doctor') {
     header("Location: ../login.php");
     exit();
@@ -99,7 +100,7 @@ if ($doctor) {
                         <tr class="hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors duration-200">
                             <td class="p-4 text-sm font-semibold text-gray-700 dark:text-gray-200">#<?php echo $apt['appointment_id']; ?></td>
                             <td class="p-4 text-sm font-medium"><?php echo htmlspecialchars($apt['patient_name']); ?></td>
-                            <td class="p-4 text-sm text-gray-500 dark:text-gray-400"><?php echo $apt['age']; ?> Yrs / <?php echo $apt['gender']; ?></td>
+                            <td class="p-4 text-sm text-gray-500 dark:text-gray-400"><?php echo e($apt['age']); ?> Yrs / <?php echo e($apt['gender']); ?></td>
                             <td class="p-4 text-sm">
                                 <?php if($apt['appointment_type'] === 'Telemedicine'): ?>
                                     <span class="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs font-semibold">🌐 Telemedicine</span>

@@ -1,5 +1,6 @@
 <?php
-session_start();
+require_once 'includes/security.php';
+init_secure_session();
 require_once 'config/db.php';
 
 // Fetch hospitals for the dropdown
@@ -7,10 +8,21 @@ $stmt = $conn->query("SELECT * FROM hospitals");
 $hospitals = $stmt->fetchAll();
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? null)) {
+        $_SESSION['error'] = "Invalid security token. Please try again.";
+        header("Location: register.php");
+        exit();
+    }
     $hospital_id = $_POST['hospital_id'] ?? null;
     $username = $_POST['username'];
     $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
     $role = $_POST['role'];
+    $allowed_roles = ['Patient', 'Doctor', 'Receptionist', 'Laboratory Staff', 'Pharmacist'];
+    if (!in_array($role, $allowed_roles, true)) {
+        $_SESSION['error'] = "Invalid registration role.";
+        header("Location: register.php");
+        exit();
+    }
     
     // Fetch identification number
     $identification_number = $_POST['identification_number'] ?? null;
@@ -27,7 +39,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $fields = ['nid_doc' => 'nid', 'certificate_doc' => 'certificate', 'photo_doc' => 'photo'];
         foreach ($fields as $input_name => $json_key) {
             if (isset($_FILES[$input_name]) && $_FILES[$input_name]['error'] === UPLOAD_ERR_OK) {
-                $filename = uniqid() . '_' . basename($_FILES[$input_name]['name']);
+                $extension = strtolower(pathinfo($_FILES[$input_name]['name'], PATHINFO_EXTENSION));
+                if (!in_array($extension, ['pdf', 'jpg', 'jpeg', 'png'], true)) {
+                    $_SESSION['error'] = "Invalid document type. Only PDF, JPG, and PNG files are allowed.";
+                    header("Location: register.php");
+                    exit();
+                }
+                $filename = bin2hex(random_bytes(16)) . '.' . $extension;
                 $target_file = $upload_dir . $filename;
                 if (move_uploaded_file($_FILES[$input_name]['tmp_name'], $target_file)) {
                     $docs[$json_key] = $target_file;
@@ -135,6 +153,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <?php endif; ?>
 
             <form method="POST" action="register.php" enctype="multipart/form-data" class="space-y-5 relative z-10">
+            <?php echo csrf_field(); ?>
                 <!-- Role Selection -->
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">I am a...</label>

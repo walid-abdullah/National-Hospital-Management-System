@@ -1,5 +1,6 @@
 <?php
-session_start();
+require_once '../includes/security.php';
+init_secure_session();
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Receptionist') {
     header("Location: ../login.php");
     exit();
@@ -91,7 +92,7 @@ try {
                         <tr class="hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors duration-200">
                             <td class="p-4 text-sm font-semibold text-gray-700 dark:text-gray-200">#<?php echo $patient['id']; ?></td>
                             <td class="p-4 text-sm font-bold"><?php echo htmlspecialchars($patient['name']); ?></td>
-                            <td class="p-4 text-sm text-gray-500 dark:text-gray-400"><?php echo $patient['age']; ?> / <?php echo $patient['gender']; ?></td>
+                            <td class="p-4 text-sm text-gray-500 dark:text-gray-400"><?php echo e($patient['age']); ?> / <?php echo e($patient['gender']); ?></td>
                             <td class="p-4 text-sm text-gray-600 dark:text-gray-300"><?php echo htmlspecialchars($patient['phone']); ?></td>
                             <td class="p-4 text-sm text-gray-600 dark:text-gray-300"><?php echo htmlspecialchars($patient['address']); ?></td>
                         </tr>
