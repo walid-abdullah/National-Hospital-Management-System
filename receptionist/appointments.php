@@ -6,17 +6,29 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Receptionist') {
     exit();
 }
 require_once __DIR__ . '/../config/db.php';
+$staff_stmt = $conn->prepare("SELECT hospital_id FROM users WHERE id = :user_id AND role = 'Receptionist'");
+$staff_stmt->execute([':user_id' => $_SESSION['user_id']]);
+$receptionist_hospital_id = (int) $staff_stmt->fetchColumn();
+if ($receptionist_hospital_id <= 0) {
+    http_response_code(403);
+    exit('Receptionist hospital is not configured.');
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'])) {
     if (!verify_csrf_token($_POST['csrf_token'] ?? null)) {
         $error = "Invalid security token. Please try again.";
     }
     $apt_id = intval($_POST['id']);
     $action = $_POST['action'];
-    $new_status = ($action === 'approve') ? 'Completed' : 'Cancelled';
+    $new_status = ($action === 'approve') ? 'Confirmed' : 'Cancelled';
     if (!isset($error) && in_array($action, ['approve', 'cancel'], true)) {
       try {
-        $update = $conn->prepare("UPDATE appointments SET status = ? WHERE id = ?");
-        $update->execute([$new_status, $apt_id]);
+        $update = $conn->prepare("UPDATE appointments SET status = :status WHERE id = :id AND hospital_id = :hospital_id");
+        $update->execute([
+            ':status' => $new_status,
+            ':id' => $apt_id,
+            ':hospital_id' => $receptionist_hospital_id,
+        ]);
         $_SESSION['success'] = "Appointment status updated to " . $new_status;
         header("Location: appointments.php");
         exit();
@@ -31,9 +43,10 @@ try {
               FROM appointments a 
               JOIN patients p ON a.patient_id = p.id 
               JOIN doctors d ON a.doctor_id = d.id 
+              WHERE a.hospital_id = :hospital_id
               ORDER BY a.appointment_date DESC";
     $stmt = $conn->prepare($query);
-    $stmt->execute();
+    $stmt->execute([':hospital_id' => $receptionist_hospital_id]);
     $appointments = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch(PDOException $e) {
     $error = "Error fetching appointments: " . $e->getMessage();

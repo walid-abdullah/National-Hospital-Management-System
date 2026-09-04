@@ -9,23 +9,33 @@ require_once __DIR__ . '/../config/db.php';
 
 $filter = isset($_GET['filter']) ? $_GET['filter'] : 'all';
 
-$query = "SELECT l.test_id, p.name AS patient_name, l.test_name, l.test_result, l.test_date 
-          FROM laboratory_tests l 
-          JOIN patients p ON l.patient_id = p.patient_id ";
-
-if ($filter === 'pathology') {
-    $query .= " WHERE l.test_name IN ('Complete Blood Count (CBC)', 'Lipid Profile', 'Thyroid Test (TSH)', 'Blood Glucose (Fasting)', 'Urine Routine', 'Liver Function Test', 'Kidney Function Test') ";
-} elseif ($filter === 'radiology') {
-    $query .= " WHERE l.test_name IN ('MRI Scan', 'Digital X-Ray') ";
-} elseif ($filter === 'cardiology') {
-    $query .= " WHERE l.test_name IN ('ECG / EKG') ";
+$staff_stmt = $conn->prepare("SELECT hospital_id FROM users WHERE id = :user_id AND role = 'Laboratory Staff'");
+$staff_stmt->execute([':user_id' => $_SESSION['user_id']]);
+$staff_hospital_id = (int) $staff_stmt->fetchColumn();
+if ($staff_hospital_id <= 0) {
+    http_response_code(403);
+    exit('Laboratory staff hospital is not configured.');
 }
 
-$query .= " ORDER BY l.test_date DESC";
+$query = "SELECT l.id AS test_id, p.name AS patient_name, s.service_name AS test_name, l.status, l.result_text, l.test_date
+          FROM laboratory_tests l 
+          JOIN patients p ON l.patient_id = p.id
+          JOIN lab_services s ON l.service_id = s.id
+          WHERE l.hospital_id = :hospital_id ";
+
+if ($filter === 'pathology') {
+    $query .= " AND s.service_name IN ('Complete Blood Count (CBC)', 'Lipid Profile', 'Thyroid Test (TSH)', 'Blood Glucose (Fasting)', 'Urine Routine', 'Liver Function Test', 'Kidney Function Test') ";
+} elseif ($filter === 'radiology') {
+    $query .= " AND s.service_name IN ('MRI Scan', 'Digital X-Ray') ";
+} elseif ($filter === 'cardiology') {
+    $query .= " AND s.service_name IN ('ECG / EKG') ";
+}
+
+$query .= " ORDER BY l.id DESC";
 
 try {
     $stmt = $conn->prepare($query);
-    $stmt->execute();
+    $stmt->execute([':hospital_id' => $staff_hospital_id]);
     $tests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch(PDOException $e) {
     $error = "Error fetching lab tests: " . $e->getMessage();
@@ -106,13 +116,13 @@ try {
                             <td class="p-4 text-sm font-medium text-gray-800 dark:text-gray-200"><?php echo htmlspecialchars($test['patient_name']); ?></td>
                             <td class="p-4 text-sm font-bold text-yellow-700 dark:text-yellow-500"><?php echo htmlspecialchars($test['test_name']); ?></td>
                             <td class="p-4 text-sm text-gray-600 dark:text-gray-300">
-                                <?php if(strpos(strtolower($test['test_result']), 'pending') !== false): ?>
+                                <?php if($test['status'] !== 'Completed'): ?>
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
-                                        <?php echo htmlspecialchars($test['test_result']); ?>
+                                        <?php echo htmlspecialchars($test['status']); ?>
                                     </span>
                                 <?php else: ?>
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                                        Completed
+                                        <?php echo htmlspecialchars($test['status']); ?>
                                     </span>
                                 <?php endif; ?>
                             </td>
