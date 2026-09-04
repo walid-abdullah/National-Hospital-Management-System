@@ -81,7 +81,7 @@ try {
             
             <?php if(isset($_SESSION['error'])): ?>
                 <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
-                    <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
+                    <?php echo e($_SESSION['error']); unset($_SESSION['error']); ?>
                 </div>
             <?php endif; ?>
 
@@ -95,7 +95,7 @@ try {
                         <select name="patient_id" required class="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
                             <option value="" disabled selected>-- Select Patient --</option>
                             <?php foreach($patients as $p): ?>
-                                <option value="<?php echo $p['patient_id']; ?>"><?php echo htmlspecialchars($p['name']); ?></option>
+                                <option value="<?php echo (int) $p['patient_id']; ?>"><?php echo e($p['name']); ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -106,7 +106,7 @@ try {
                         <select name="doctor_id" required class="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
                             <option value="" disabled selected>-- Select Doctor --</option>
                             <?php foreach($doctors as $d): ?>
-                                <option value="<?php echo $d['doctor_id']; ?>"><?php echo htmlspecialchars($d['doctor_name']); ?></option>
+                                <option value="<?php echo (int) $d['doctor_id']; ?>"><?php echo e($d['doctor_name']); ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>

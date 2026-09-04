@@ -113,19 +113,19 @@ usort($events, function($a, $b) {
         <div class="relative border-l-4 border-indigo-200 dark:border-indigo-900/50 ml-6 pl-8 space-y-10">
             <?php foreach($events as $event): ?>
             <div class="relative">
-                <div class="absolute -left-[45px] top-1 w-10 h-10 rounded-full flex items-center justify-center text-white text-xl shadow-lg border-4 border-slate-50 dark:border-gray-900 <?= $event['color'] ?>">
-                    <?= $event['icon'] ?>
+                <div class="absolute -left-[45px] top-1 w-10 h-10 rounded-full flex items-center justify-center text-white text-xl shadow-lg border-4 border-slate-50 dark:border-gray-900 <?= e($event['color']) ?>">
+                    <?= e($event['icon']) ?>
                 </div>
                 
                 <div class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-md border border-gray-100 dark:border-slate-700 hover:shadow-lg transition">
                     <div class="flex justify-between items-start mb-2">
-                        <h3 class="text-lg font-bold text-gray-800 dark:text-white"><?= htmlspecialchars($event['title']) ?></h3>
+                        <h3 class="text-lg font-bold text-gray-800 dark:text-white"><?= e($event['title']) ?></h3>
                         <span class="text-xs font-semibold px-3 py-1 rounded-full bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-gray-300">
                             <?= date('M d, Y h:i A', strtotime($event['date'])) ?>
                         </span>
                     </div>
-                    <p class="text-sm font-medium text-indigo-500 mb-2"><?= $event['type'] ?></p>
-                    <p class="text-gray-600 dark:text-gray-300"><?= htmlspecialchars($event['description']) ?></p>
+                    <p class="text-sm font-medium text-indigo-500 mb-2"><?= e($event['type']) ?></p>
+                    <p class="text-gray-600 dark:text-gray-300"><?= e($event['description']) ?></p>
                 </div>
             </div>
             <?php endforeach; ?>

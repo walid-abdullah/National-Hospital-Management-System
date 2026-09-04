@@ -66,7 +66,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
             
             <?php if(isset($_SESSION['error'])): ?>
                 <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
-                    <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
+                    <?php echo e($_SESSION['error']); unset($_SESSION['error']); ?>
                 </div>
             <?php endif; ?>
 

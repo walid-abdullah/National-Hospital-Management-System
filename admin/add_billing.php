@@ -72,7 +72,7 @@ try {
             <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-6">Generate New Bill</h2>
             <?php if(isset($_SESSION['error'])): ?>
                 <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
-                    <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
+                    <?php echo e($_SESSION['error']); unset($_SESSION['error']); ?>
                 </div>
             <?php endif; ?>
             <form action="add_billing_action.php" method="POST" class="space-y-6">
@@ -83,7 +83,7 @@ try {
                         <select name="patient_id" required class="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:bg-slate-700 dark:text-white dark:border-slate-600">
                             <option value="" disabled selected>-- Select Patient --</option>
                             <?php foreach($patients as $p): ?>
-                                <option value="<?php echo $p['patient_id']; ?>"><?php echo htmlspecialchars($p['name']); ?></option>
+                                <option value="<?php echo (int) $p['patient_id']; ?>"><?php echo e($p['name']); ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>

@@ -148,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <?php if(isset($_SESSION['error'])): ?>
                 <div class="bg-red-50 dark:bg-red-900/30 border-l-4 border-red-500 text-red-700 dark:text-red-300 p-4 rounded mb-6 text-sm flex items-center relative z-10 shadow-sm">
                     <svg class="w-5 h-5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
-                    <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
+                    <?php echo e($_SESSION['error']); unset($_SESSION['error']); ?>
                 </div>
             <?php endif; ?>
 
@@ -172,7 +172,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <select name="hospital_id" required class="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-inner text-gray-800 dark:text-gray-100 appearance-none">
                         <option value="" disabled selected>-- Choose Hospital --</option>
                         <?php foreach($hospitals as $h): ?>
-                            <option value="<?= $h['id'] ?>"><?= htmlspecialchars($h['name']) ?> (<?= htmlspecialchars($h['location']) ?>)</option>
+                            <option value="<?= (int) $h['id'] ?>"><?= e($h['name']) ?> (<?= e($h['location']) ?>)</option>
                         <?php endforeach; ?>
                     </select>
                 </div>

@@ -9,6 +9,19 @@ require_once __DIR__ . '/../config/db.php';
 
 $test_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 $msg = '';
+$staff_stmt = $conn->prepare("SELECT hospital_id FROM users WHERE id = :user_id AND role = 'Laboratory Staff'");
+$staff_stmt->execute([':user_id' => $_SESSION['user_id']]);
+$staff_hospital_id = (int) $staff_stmt->fetchColumn();
+if ($staff_hospital_id <= 0) {
+    http_response_code(403);
+    exit('Laboratory staff hospital is not configured.');
+}
+$access_stmt = $conn->prepare("SELECT 1 FROM laboratory_tests WHERE id = :id AND hospital_id = :hospital_id");
+$access_stmt->execute([':id' => $test_id, ':hospital_id' => $staff_hospital_id]);
+if (!$access_stmt->fetchColumn()) {
+    http_response_code(404);
+    exit('Test not found.');
+}
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (!verify_csrf_token($_POST['csrf_token'] ?? null)) {
@@ -19,15 +32,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // File upload logic
     $file_path_db = null;
     if (isset($_FILES['report_file']) && $_FILES['report_file']['error'] == 0) {
-        $allowed = ['pdf', 'jpg', 'jpeg', 'png'];
+        $allowed = ['pdf', 'jpg', 'png'];
         $filename = $_FILES['report_file']['name'];
         $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-        if (in_array($ext, $allowed)) {
-            $new_filename = time() . '_' . rand(1000, 9999) . '.' . $ext;
-            $upload_dir = '../uploads/lab_reports/';
-            if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
+        $mime_types = [
+            'pdf' => 'application/pdf',
+            'jpg' => 'image/jpeg',
+            'png' => 'image/png',
+        ];
+        $detected_mime = (new finfo(FILEINFO_MIME_TYPE))->file($_FILES['report_file']['tmp_name']);
+        if (isset($mime_types[$ext]) && $detected_mime === $mime_types[$ext]) {
+            $new_filename = bin2hex(random_bytes(16)) . '.' . $ext;
+            $upload_dir = __DIR__ . '/../uploads/lab_reports/';
+            if (!is_dir($upload_dir) && !mkdir($upload_dir, 0750, true) && !is_dir($upload_dir)) {
+                throw new RuntimeException('Unable to create the report upload directory.');
+            }
             $destination = $upload_dir . $new_filename;
             if (move_uploaded_file($_FILES['report_file']['tmp_name'], $destination)) {
+                chmod($destination, 0640);
                 $file_path_db = 'uploads/lab_reports/' . $new_filename;
             }
             }
@@ -39,15 +61,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (!empty($result_text) || $file_path_db) {
         try {
             if ($file_path_db) {
-                $update = $conn->prepare("UPDATE laboratory_tests SET result_text = :res, status = 'Completed', file_path = :fpath WHERE id = :id");
-                $update->execute([':res' => empty($result_text) ? 'See attached document.' : $result_text, ':fpath' => $file_path_db, ':id' => $test_id]);
+                $update = $conn->prepare("UPDATE laboratory_tests SET result_text = :res, status = 'Completed', file_path = :fpath WHERE id = :id AND hospital_id = :hospital_id");
+                $update->execute([':res' => empty($result_text) ? 'See attached document.' : $result_text, ':fpath' => $file_path_db, ':id' => $test_id, ':hospital_id' => $staff_hospital_id]);
             } else {
-                $update = $conn->prepare("UPDATE laboratory_tests SET result_text = :res, status = 'Completed' WHERE id = :id");
-                $update->execute([':res' => $result_text, ':id' => $test_id]);
+                $update = $conn->prepare("UPDATE laboratory_tests SET result_text = :res, status = 'Completed' WHERE id = :id AND hospital_id = :hospital_id");
+                $update->execute([':res' => $result_text, ':id' => $test_id, ':hospital_id' => $staff_hospital_id]);
+            }
+            if ($update->rowCount() !== 1) {
+                throw new RuntimeException('This laboratory test is not assigned to your hospital.');
             }
             $msg = "<div class='bg-green-100 text-green-700 p-4 rounded mb-4'>Test result updated successfully!</div>";
-        } catch(PDOException $e) {
-            $msg = "<div class='bg-red-100 text-red-700 p-4 rounded mb-4'>Error: " . $e->getMessage() . "</div>";
+        } catch (PDOException | RuntimeException $e) {
+            $msg = "<div class='bg-red-100 text-red-700 p-4 rounded mb-4'>Unable to update the laboratory report.</div>";
         }
     } else {
         if(empty($msg)) $msg = "<div class='bg-red-100 text-red-700 p-4 rounded mb-4'>Please write a report or upload a file.</div>";
@@ -56,8 +81,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
 // Fetch test details
 try {
-    $stmt = $conn->prepare("SELECT l.*, p.name AS patient_name, p.age, p.gender, s.service_name AS test_name FROM laboratory_tests l JOIN patients p ON l.patient_id = p.patient_id JOIN lab_services s ON l.service_id = s.id WHERE l.id = :id");
-    $stmt->execute([':id' => $test_id]);
+    $stmt = $conn->prepare("SELECT l.*, p.name AS patient_name, p.age, p.gender, s.service_name AS test_name FROM laboratory_tests l JOIN patients p ON l.patient_id = p.id JOIN lab_services s ON l.service_id = s.id WHERE l.id = :id AND l.hospital_id = :hospital_id");
+    $stmt->execute([':id' => $test_id, ':hospital_id' => $staff_hospital_id]);
     $test = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$test) {
         die("Test not found.");
@@ -130,7 +155,7 @@ try {
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Upload PDF/Image Report (Optional)</label>
-                    <input type="file" name="report_file" accept=".pdf,.jpg,.jpeg,.png" class="w-full px-4 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-white">
+                    <input type="file" name="report_file" accept=".pdf,.jpg,.png" class="w-full px-4 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:text-white">
                     <?php if(!empty($test['file_path'])): ?>
                         <p class="text-sm text-green-600 mt-2">Currently uploaded: <a href="../<?php echo htmlspecialchars($test['file_path']); ?>" target="_blank" class="underline">View File</a></p>
                     <?php endif; ?>
