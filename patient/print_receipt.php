@@ -2,7 +2,7 @@
 require_once '../includes/security.php';
 init_secure_session();
 
-if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'Patient') {
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['Patient', 'Admin'], true)) {
     header('Location: ../login.php');
     exit();
 }
@@ -17,23 +17,25 @@ if (!$bill_id) {
 
 $stmt = $conn->prepare(
     "SELECT b.id, b.invoice_number, b.total_amount, b.status, b.bill_date, b.details,
-            b.payment_method, p.name AS patient_name, p.phone, p.address,
+            b.payment_method, p.name AS patient_name, p.age, p.phone, p.address,
             h.name AS hospital_name, h.location AS hospital_address, h.contact_number AS hospital_contact
      FROM billing b
      JOIN patients p ON b.patient_id = p.id
      JOIN hospitals h ON b.hospital_id = h.id
-     WHERE b.id = :bill_id AND p.user_id = :user_id
+     WHERE b.id = :bill_id
+       AND (:role = 'Admin' OR p.user_id = :user_id)
      LIMIT 1"
 );
 $stmt->execute([
     ':bill_id' => $bill_id,
+    ':role' => $_SESSION['role'],
     ':user_id' => $_SESSION['user_id'],
 ]);
 $bill = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$bill) {
     http_response_code(404);
-    exit('Receipt not found.');
+    exit('Receipt not found or access denied.');
 }
 
 $details = json_decode($bill['details'] ?? '', true);
@@ -42,7 +44,7 @@ if (is_array($details)) {
     foreach ($details as $key => $item) {
         if (is_array($item)) {
             $description = $item['name'] ?? $item['item'] ?? 'Service';
-            $amount = (float) ($item['cost'] ?? $item['price'] ?? 0);
+            $amount = (float) ($item['cost'] ?? $item['price'] ?? $item['amount'] ?? 0);
         } else {
             $description = is_string($key) ? $key : 'Service';
             $amount = (float) $item;
@@ -53,6 +55,10 @@ if (is_array($details)) {
 if (!$line_items) {
     $line_items[] = ['description' => 'General Consultation', 'amount' => (float) $bill['total_amount']];
 }
+
+$payment_method = in_array($bill['payment_method'], ['Cash', 'Card', 'Online'], true)
+    ? $bill['payment_method']
+    : 'Cash';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -60,77 +66,112 @@ if (!$line_items) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Receipt - <?php echo e($bill['invoice_number']); ?></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { color-scheme: light; }
-        * { box-sizing: border-box; }
-        body { margin: 0; background: #eef2f7; color: #172033; font-family: Arial, sans-serif; }
-        .receipt { position: relative; max-width: 820px; margin: 40px auto; padding: 48px; background: #fff; box-shadow: 0 18px 45px rgba(15, 23, 42, .12); }
-        .header { display: flex; justify-content: space-between; gap: 24px; padding-bottom: 28px; border-bottom: 3px solid #0f766e; }
-        .brand { color: #0f766e; font-size: 30px; font-weight: 800; letter-spacing: .08em; }
-        .muted { color: #64748b; font-size: 13px; line-height: 1.6; }
-        h1 { margin: 4px 0 10px; font-size: 28px; }
-        h2 { margin: 0 0 8px; font-size: 14px; text-transform: uppercase; letter-spacing: .08em; color: #64748b; }
-        .meta { text-align: right; }
-        .customer { display: flex; justify-content: space-between; gap: 24px; padding: 28px 0; }
-        table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-        th, td { padding: 14px 12px; border-bottom: 1px solid #e2e8f0; text-align: left; }
-        th { background: #f8fafc; color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
-        .amount { text-align: right; font-variant-numeric: tabular-nums; }
-        .total { display: flex; justify-content: flex-end; margin-top: 20px; font-size: 21px; font-weight: 800; color: #0f766e; }
-        .stamp { position: absolute; top: 170px; right: 48px; padding: 10px 18px; border: 3px solid #16a34a; color: #16a34a; font-size: 24px; font-weight: 900; letter-spacing: .12em; transform: rotate(-10deg); }
-        .footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid #e2e8f0; text-align: center; }
-        .print-button { display: block; margin: 26px auto 0; padding: 11px 22px; border: 0; border-radius: 7px; background: #0f766e; color: #fff; cursor: pointer; font-weight: 700; }
+        body { font-family: 'Outfit', sans-serif; background: #e2e8f0; }
+        .pad-container {
+            background: #ffffff;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 40px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            min-height: 1050px;
+            position: relative;
+        }
+        .header-border { border-bottom: 2px solid #0f766e; }
+        .footer-border { border-top: 2px solid #0f766e; }
+        .paid-stamp {
+            border: 3px solid #16a34a;
+            color: #16a34a;
+            font-weight: 800;
+            letter-spacing: .15em;
+            transform: rotate(-10deg);
+        }
         @media print {
-            body { background: #fff; }
-            .receipt { max-width: none; margin: 0; padding: 20px; box-shadow: none; }
-            .print-button { display: none; }
+            @page { size: A4; margin: 0; }
+            body { background: #ffffff; margin: 0; padding: 0; }
+            .pad-container { box-shadow: none; margin: 0; padding: 20px; width: 100%; min-height: 100vh; }
+            .no-print { display: none !important; }
         }
     </style>
 </head>
 <body>
-    <main class="receipt">
-        <?php if ($bill['status'] === 'Paid'): ?><div class="stamp">PAID</div><?php endif; ?>
-        <header class="header">
+    <div class="text-center mt-6 no-print">
+        <button onclick="window.print()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-6 rounded shadow-lg mr-4">Print / Save as PDF</button>
+        <button onclick="window.close()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded shadow-lg">Close</button>
+    </div>
+
+    <main class="pad-container flex flex-col">
+        <div class="flex justify-between items-center header-border pb-4 mb-6">
             <div>
-                <div class="brand">NHIMS</div>
-                <h1><?php echo e($bill['hospital_name']); ?></h1>
-                <div class="muted"><?php echo e($bill['hospital_address']); ?><br>Phone: <?php echo e($bill['hospital_contact']); ?></div>
+                <h1 class="text-3xl font-extrabold text-emerald-700"><?php echo e($bill['hospital_name']); ?></h1>
+                <p class="text-gray-600 text-sm mt-1">National Hospital Information Management System</p>
+                <p class="text-gray-600 text-sm"><?php echo e($bill['hospital_address']); ?></p>
+                <p class="text-gray-600 text-sm">Contact: <?php echo e($bill['hospital_contact']); ?></p>
             </div>
-            <div class="meta">
-                <h1>Payment Receipt</h1>
-                <div class="muted">Invoice #: <strong><?php echo e($bill['invoice_number']); ?></strong><br>
-                    Date: <?php echo e(date('M d, Y', strtotime($bill['bill_date']))); ?><br>
-                    Method: <?php echo e($bill['payment_method'] ?? 'N/A'); ?>
+            <div class="text-right">
+                <h2 class="text-2xl font-bold text-gray-800">Payment Receipt</h2>
+                <p class="text-emerald-600 font-semibold">Official Document</p>
+            </div>
+        </div>
+
+        <div class="flex justify-between text-sm bg-emerald-50 p-4 rounded-lg mb-8">
+            <div>
+                <p><span class="font-semibold">Patient Name:</span> <?php echo e($bill['patient_name']); ?></p>
+                <p><span class="font-semibold">Age:</span> <?php echo e($bill['age']); ?></p>
+                <p><span class="font-semibold">Phone:</span> <?php echo e($bill['phone']); ?></p>
+            </div>
+            <div class="text-right">
+                <p><span class="font-semibold">Invoice Number:</span> <?php echo e($bill['invoice_number']); ?></p>
+                <p><span class="font-semibold">Date/Time:</span> <?php echo e(date('d M Y, h:i A', strtotime($bill['bill_date']))); ?></p>
+                <p><span class="font-semibold">Payment Method:</span> <?php echo e($payment_method); ?></p>
+            </div>
+        </div>
+
+        <div class="flex-grow">
+            <div class="flex justify-between items-center border-b-2 border-gray-200 pb-2 mb-4">
+                <h3 class="text-xl font-bold text-gray-800">Breakdown of Fees</h3>
+                <?php if ($bill['status'] === 'Paid'): ?>
+                    <span class="paid-stamp px-3 py-1 text-lg rounded">PAID</span>
+                <?php endif; ?>
+            </div>
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-50 text-gray-600 text-sm uppercase">
+                        <th class="p-3 border-y border-gray-200">Description</th>
+                        <th class="p-3 border-y border-gray-200 text-right">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($line_items as $item): ?>
+                        <tr>
+                            <td class="p-3 border-b border-gray-100 text-gray-800"><?php echo e((string) $item['description']); ?></td>
+                            <td class="p-3 border-b border-gray-100 text-gray-800 text-right font-semibold">৳<?php echo number_format($item['amount'], 2); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+            <div class="flex justify-end mt-6">
+                <div class="w-64 border-t-2 border-emerald-600 pt-3">
+                    <div class="flex justify-between text-xl font-black text-emerald-700">
+                        <span>Total Amount</span>
+                        <span>৳<?php echo number_format((float) $bill['total_amount'], 2); ?></span>
+                    </div>
                 </div>
             </div>
-        </header>
+        </div>
 
-        <section class="customer">
-            <div>
-                <h2>Received From</h2>
-                <strong><?php echo e($bill['patient_name']); ?></strong>
-                <div class="muted"><?php echo e($bill['phone']); ?><br><?php echo e($bill['address']); ?></div>
+        <div class="footer-border pt-4 mt-8 flex justify-between items-end">
+            <div class="text-xs text-gray-500">
+                <p>Received with thanks. This is a computer-generated receipt from NHIMS.</p>
+                <p>For billing queries, please contact the hospital administration.</p>
             </div>
-            <div class="meta">
-                <h2>Status</h2>
-                <strong><?php echo e($bill['status']); ?></strong>
+            <div class="text-center">
+                <div class="border-b border-gray-800 w-40 mx-auto mb-1"></div>
+                <p class="text-sm font-semibold text-gray-800">Authorized Signature</p>
             </div>
-        </section>
-
-        <table>
-            <thead><tr><th>Description</th><th class="amount">Amount</th></tr></thead>
-            <tbody>
-                <?php foreach ($line_items as $item): ?>
-                    <tr>
-                        <td><?php echo e((string) $item['description']); ?></td>
-                        <td class="amount">৳<?php echo number_format($item['amount'], 2); ?></td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-        <div class="total">Total Paid: ৳<?php echo number_format((float) $bill['total_amount'], 2); ?></div>
-        <footer class="footer muted">Thank you for choosing <?php echo e($bill['hospital_name']); ?>.<br>This receipt was generated electronically by NHIMS.</footer>
-        <button type="button" class="print-button" onclick="window.print()">Print / Save as PDF</button>
+        </div>
     </main>
 </body>
 </html>

@@ -111,7 +111,7 @@ if ($patient) {
                                 <?php endif; ?>
                             </td>
                             <td class="p-4 text-center align-top">
-                                <a href="print_receipt.php?id=<?php echo (int) $bill['id']; ?>" target="_blank" rel="noopener" class="inline-block bg-gradient-to-r from-teal-500 to-emerald-600 text-white text-xs px-3 py-1.5 rounded shadow hover:scale-105 transition transform">Print Receipt</a>
+                                <a href="print_receipt.php?id=<?php echo (int) $bill['id']; ?>" target="_blank" rel="noopener" class="bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:scale-105 transition inline-block">🧾 Print Receipt</a>
                             </td>
                         </tr>
                         <?php endforeach; ?>
