@@ -33,6 +33,11 @@ Traditional hospital infrastructures suffer from severe operational bottlenecks:
 ### 1.3 The Solution
 NHIMS provides a unified platform connecting **6 role-based portals** backed by **22 relational database tables** and **30 foreign key constraints**. It delivers real-time appointment booking, automated QR queue-token generation, structured JSON electronic prescriptions, hospital-letterhead PDF export, a 4-stage laboratory diagnostic pipeline, and pharmacy POS inventory synchronization.
 
+### 1.4 Key Features
+- **Embedded Jitsi Meet Telemedicine Video Consultation Room:** Appointment-specific, browser-based video consultations for doctors and patients inside the portal.
+- **Official Hospital Money Receipt & Printable Billing PDF Export:** Hospital-branded receipts with invoice details, fee breakdowns, payment status, and print/save-as-PDF support.
+- **Full CSRF, IDOR, Session Fixation, and XSS Hardening:** Shared security helpers, ownership checks, secure session handling, and escaped user-controlled output across protected workflows.
+
 ---
 
 ## 2. System Architecture
@@ -53,6 +58,9 @@ NHIMS provides a unified platform connecting **6 role-based portals** backed by 
 |  - Outpatient Queue Token & QR Matrix Generator                                       |
 |  - 4-Stage Laboratory Diagnostic Workflow State Machine                               |
 |  - Pharmacy POS with Atomic Stock Validation & Inventory Deduction                    |
+|  - Embedded Jitsi Meet Telemedicine Video Consultation Room                            |
+|  - Official Hospital Money Receipt & Printable Billing PDF Export                     |
+|  - Full CSRF, IDOR, Session Fixation, and XSS Hardening                               |
 |  - PDO (PHP Data Objects) Persistence Layer with Parameterized SQL Statements         |
 +---------------------+---------------------+---------------------+---------------------+
                       |                     |                     |
@@ -62,6 +70,7 @@ NHIMS provides a unified platform connecting **6 role-based portals** backed by 
 |  - Appointments & Queue   | |  - 4-Stage Lab Pipeline   | |  - Live Bed Availability  |
 |  - Electronic Prescribing | |  - Letterhead PDF Reports | |  - Blood Bank Stock       |
 |  - Longitudinal EHR       | |  - POS Inventory Tracking | |  - Ambulance Fleet Standby|
+|  - Jitsi Video Consults   | |  - Money Receipt PDF      | |                          |
 +---------------------------+ +---------------------------+ +---------------------------+
                                             |
                                             v
@@ -115,13 +124,21 @@ NHIMS provides a unified platform connecting **6 role-based portals** backed by 
   3. Patient Receives Digital Queue Token (with Verifiable QR Code)
           |
           v
-  4. Doctor Conducts Consultation & Writes Digital Prescription (Medicines + Lab Tests)
+  4. Doctor and Patient Join the Embedded Jitsi Meet Consultation Room
+     (Appointment-specific room with camera and microphone controls)
           |
           v
-  5. Laboratory Staff Processes Tests (Pending -> Sample Collected -> Processing -> Completed)
+  5. Doctor Conducts Consultation & Writes Digital Prescription (Medicines + Lab Tests)
           |
           v
-  6. Patient Downloads Hospital-Pad Prescription & Diagnostic Report PDFs
+  6. Laboratory Staff Processes Tests (Pending -> Sample Collected -> Processing -> Completed)
+          |
+          v
+  7. Patient Reviews Billing History and Prints an Official Hospital Money Receipt
+     (Fee breakdown, payment method, paid status, and PDF export)
+          |
+          v
+  8. Patient Downloads Hospital-Pad Prescription & Diagnostic Report PDFs
 ```
 
 ---
